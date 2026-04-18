@@ -19,8 +19,11 @@
             border-radius: 9999px; width: 22px; height: 22px; font-size: 12px;
             display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white;
         }
-        .imagen-placeholder { width: 70px; height: 70px; background: linear-gradient(135deg, #fed7aa, #ffedd5);
-            border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 30px;
+        /* AJUSTE DE IMAGEN PARA QUE NO SE AMONTONE */
+        .imagen-contenedor { width: 70px; height: 70px; flex-shrink: 0; }
+        .imagen-plato { width: 100%; height: 100%; object-fit: cover; border-radius: 12px; background: #fed7aa; border: 1px solid #ffedd5; }
+        .imagen-placeholder { width: 100%; height: 100%; background: linear-gradient(135deg, #fed7aa, #ffedd5);
+            border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px;
         }
         .btn-disabled { background: #d1d5db !important; cursor: not-allowed !important; opacity: 0.7; }
     </style>
@@ -28,7 +31,7 @@
 <body class="bg-gray-50 text-gray-800 font-sans pb-32">
 
     <header class="bg-gradient-to-r from-orange-600 to-orange-700 text-white p-5 text-center shadow-lg sticky top-0 z-20">
-        <h1 class="text-3xl font-black tracking-tighter italic">DAMN MONKEY 🐵🔥</h1>
+        <h1 class="text-3xl font-black tracking-tighter italic">DANM MONKEY ORIGINAL . 🐵🔥</h1>
         <p class="text-sm opacity-95 mt-1">¡Sabor criminal en cada mordida!</p>
     </header>
 
@@ -58,16 +61,11 @@
                 <p class="text-orange-800 font-bold mb-1">📍 Punto de retiro:</p>
                 <p class="text-sm text-gray-900 font-bold uppercase">Lizardo García y Alejandro Gañarza</p>
                 <p class="text-xs text-orange-700 font-semibold italic">Conjunto Albazul 2</p>
-                <p class="text-[10px] text-orange-600 mt-2">Recibirás la ubicación exacta por WhatsApp</p>
             </div>
         </div>
 
-        <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
-            <div class="bg-gradient-to-r from-orange-50 to-orange-100 px-4 py-3 border-b border-orange-200">
-                <h2 class="font-bold text-orange-800 text-lg">🍗 NUESTRO MENÚ</h2>
+        <div id="contenedor-menu">
             </div>
-            <div id="menu-container" class="divide-y divide-gray-100"></div>
-        </div>
     </main>
 
     <div id="carrito-bar" class="fixed bottom-0 left-0 right-0 bg-white border-t-4 border-orange-500 p-4 shadow-2xl hidden max-w-md mx-auto z-50">
@@ -87,29 +85,60 @@
         const LOCAL_COORDS = [-0.2660338701466934, -78.50071673109036];
         const WHATSAPP_NUMBER = '593983730006'; 
         
-        const ZONAS_ENVIO = {
-            "type": "FeatureCollection",
-            "features": [
-                { "type": "Feature", "properties": { "Precio": 0.60, "nombre": "Zona 1" }, "geometry": { "type": "Polygon", "coordinates": [[[-78.495306, -0.258094], [-78.497350, -0.257534], [-78.499792, -0.260332], [-78.501717, -0.264135], [-78.503005, -0.265210], [-78.503057, -0.273833], [-78.499363, -0.274835], [-78.496614, -0.267495], [-78.495306, -0.258094]]] } },
-                { "type": "Feature", "properties": { "Precio": 0.80, "nombre": "Zona 2" }, "geometry": { "type": "Polygon", "coordinates": [[[-78.498454, -0.272664], [-78.499247, -0.274984], [-78.503061, -0.273934], [-78.503349, -0.276611], [-78.500844, -0.280324], [-78.496744, -0.276669], [-78.495759, -0.274271], [-78.498454, -0.272664]]] } },
-                { "type": "Feature", "properties": { "Precio": 0.82, "nombre": "Zona 3" }, "geometry": { "type": "Polygon", "coordinates": [[[-78.496450, -0.256412], [-78.497143, -0.257529], [-78.495195, -0.258083], [-78.495804, -0.262126], [-78.494503, -0.263317], [-78.493035, -0.261665], [-78.494539, -0.258867], [-78.493413, -0.257224], [-78.495066, -0.256403], [-78.496450, -0.256412]]] } },
-                { "type": "Feature", "properties": { "Precio": 0.90, "nombre": "Zona 4" }, "geometry": { "type": "Polygon", "coordinates": [[[-78.485325, -0.258668], [-78.484086, -0.254595], [-78.490144, -0.257959], [-78.493192, -0.257137], [-78.494356, -0.258895], [-78.485325, -0.258668]]] } },
-                { "type": "Feature", "properties": { "Precio": 2.00, "nombre": "Zona 5" }, "geometry": { "type": "Polygon", "coordinates": [[[-78.483858, -0.253950], [-78.482783, -0.251496], [-78.483365, -0.249384], [-78.486489, -0.248676], [-78.487943, -0.252293], [-78.483858, -0.253950]]] } },
-                { "type": "Feature", "properties": { "Precio": 1.40, "nombre": "Zona 6" }, "geometry": { "type": "Polygon", "coordinates": [[[-78.494899, -0.256401], [-78.490134, -0.257822], [-78.484121, -0.254582], [-78.483861, -0.254044], [-78.488054, -0.252260], [-78.486911, -0.249348], [-78.490203, -0.248915], [-78.494397, -0.250388], [-78.494899, -0.256401]]] } },
-                { "type": "Feature", "properties": { "Precio": 1.36, "nombre": "Zona 7" }, "geometry": { "type": "Polygon", "coordinates": [[[-78.494965, -0.256274], [-78.494495, -0.250310], [-78.491566, -0.248921], [-78.496632, -0.245244], [-78.498898, -0.252726], [-78.496611, -0.256360], [-78.494965, -0.256274]]] } },
-                { "type": "Feature", "properties": { "Precio": 1.92, "nombre": "Zona 8" }, "geometry": { "type": "Polygon", "coordinates": [[[-78.500202, -0.247945], [-78.497726, -0.248679], [-78.496658, -0.245132], [-78.492557, -0.248033], [-78.489923, -0.243984], [-78.490905, -0.241735], [-78.493849, -0.240058], [-78.498988, -0.241325], [-78.500202, -0.247945]]] } },
-                { "type": "Feature", "properties": { "Precio": 2.00, "nombre": "Zona 9" }, "geometry": { "type": "Polygon", "coordinates": [[[-78.492480, -0.248089], [-78.491491, -0.248867], [-78.490239, -0.248801], [-78.486850, -0.249236], [-78.486521, -0.248577], [-78.483356, -0.249315], [-78.485176, -0.245597], [-78.485637, -0.242262], [-78.485097, -0.239150], [-78.489540, -0.237621], [-78.493706, -0.240007], [-78.490885, -0.241576], [-78.489856, -0.243989], [-78.492480, -0.248089]]] } },
-                { "type": "Feature", "properties": { "Precio": 1.84, "nombre": "Zona 10" }, "geometry": { "type": "Polygon", "coordinates": [[[-78.494240, -0.259052], [-78.492862, -0.261718], [-78.494388, -0.263501], [-78.495786, -0.262393], [-78.496348, -0.266586], [-78.494436, -0.268514], [-78.490066, -0.270843], [-78.487769, -0.269751], [-78.486821, -0.267839], [-78.487463, -0.264337], [-78.484009, -0.265750], [-78.479896, -0.266329], [-78.481383, -0.261362], [-78.484539, -0.262846], [-78.491048, -0.259118], [-78.494240, -0.259052]]] } },
-                { "type": "Feature", "properties": { "Precio": 1.97, "nombre": "Zona 11" }, "geometry": { "type": "Polygon", "coordinates": [[[-78.490571, -0.284894], [-78.488755, -0.282331], [-78.492173, -0.279576], [-78.496722, -0.276735], [-78.500759, -0.280366], [-78.503472, -0.288205], [-78.490571, -0.284894]]] } },
-                { "type": "Feature", "properties": { "Precio": 1.91, "nombre": "Zona 12" }, "geometry": { "type": "Polygon", "coordinates": [[[-78.498311, -0.272594], [-78.495536, -0.274184], [-78.496490, -0.276642], [-78.488656, -0.282250], [-78.489870, -0.276815], [-78.489638, -0.271091], [-78.493628, -0.269357], [-78.496259, -0.267015], [-78.498311, -0.272594]]] } }
-            ]
-        };
-
+        // ESTRUCTURA DE PRODUCTOS
         const PRODUCTOS = [
-            { id: 'p1', nombre: "🍗 Papi-Alita Completa", precio: 1.99, descripcion: "Alita + Papas + Salsas" },
-            { id: 'p2', nombre: "🍗 COMBO 6 ALITAS", precio: 3.49, descripcion: "6 Alitas + Papas + Salsas" },
-            { id: 'p3', nombre: "🍗 MEGA FAMILIAR", precio: 9.99, descripcion: "20 Alitas + Papas + Salsas" }
+            { 
+                id: 'p1', 
+                categoria: 'ALITAS', 
+                nombre: "🍗 Papi-Alita Completa", 
+                precio: 1.99, 
+                descripcion: "Alita + Papas + Salsas",
+                imagen: "https://i.postimg.cc/y8pkYZz5/alitas-2-presas.jpg"
+            },
+            { 
+                id: 'p2', 
+                categoria: 'ALITAS', 
+                nombre: "🍗 Combo 6 Alitas", 
+                precio: 50.30, 
+                descripcion: "6 Alitas + Papas + Salsas",
+                imagen: "https://i.postimg.cc/wTGp1c7h/6-alitas.jpg" 
+            },
+            { 
+                id: 'p3', 
+                categoria: 'ALITAS', 
+                nombre: "🐵 Mega Familiar", 
+                precio: 9.99, 
+                descripcion: "20 Alitas + Papas familiares + Salsas",
+                imagen: "https://i.postimg.cc/J07LkpNb/20ALITAS.jpg" 
+            },
+            { 
+                id: 'p4', 
+                categoria: 'PROMOCIONES', 
+                nombre: "🔥 Combo Damn Monkey", 
+                precio: 12.50, 
+                descripcion: "25 Alitas + Porción extra de papas",
+                imagen: "" 
+            },
+            { 
+                id: 'p5', 
+                categoria: 'PROMOCIONES', 
+                nombre: "🔥 PAPITAS", 
+                precio: 1.50, 
+                descripcion: "25 Alitas + Porción extra de papas",
+                imagen: "" 
+            },
+            { 
+                id: 'p6', 
+                categoria: 'COMPLMETOS', 
+                nombre: "🔥 COLA PEPSI 1L", 
+                precio: 1.50, 
+                descripcion: "COLA NEGRA DE UN LITRO",
+                imagen: "https://i.postimg.cc/G2h7PVf4/pepsi-1L.jpg" 
+            }
         ];
+
+        // Zonas de envío (Tus coordenadas de Quito)
+        const ZONAS_ENVIO = { "type": "FeatureCollection", "features": [ { "type": "Feature", "properties": { "Precio": 0.60, "nombre": "Zona 1" }, "geometry": { "type": "Polygon", "coordinates": [[[-78.495306, -0.258094], [-78.497350, -0.257534], [-78.499792, -0.260332], [-78.501717, -0.264135], [-78.503005, -0.265210], [-78.503057, -0.273833], [-78.499363, -0.274835], [-78.496614, -0.267495], [-78.495306, -0.258094]]] } }, { "type": "Feature", "properties": { "Precio": 0.80, "nombre": "Zona 2" }, "geometry": { "type": "Polygon", "coordinates": [[[-78.498454, -0.272664], [-78.499247, -0.274984], [-78.503061, -0.273934], [-78.503349, -0.276611], [-78.500844, -0.280324], [-78.496744, -0.276669], [-78.495759, -0.274271], [-78.498454, -0.272664]]] } }, { "type": "Feature", "properties": { "Precio": 0.82, "nombre": "Zona 3" }, "geometry": { "type": "Polygon", "coordinates": [[[-78.496450, -0.256412], [-78.497143, -0.257529], [-78.495195, -0.258083], [-78.495804, -0.262126], [-78.494503, -0.263317], [-78.493035, -0.261665], [-78.494539, -0.258867], [-78.493413, -0.257224], [-78.495066, -0.256403], [-78.496450, -0.256412]]] } }, { "type": "Feature", "properties": { "Precio": 0.90, "nombre": "Zona 4" }, "geometry": { "type": "Polygon", "coordinates": [[[-78.485325, -0.258668], [-78.484086, -0.254595], [-78.490144, -0.257959], [-78.493192, -0.257137], [-78.494356, -0.258895], [-78.485325, -0.258668]]] } }, { "type": "Feature", "properties": { "Precio": 2.00, "nombre": "Zona 5" }, "geometry": { "type": "Polygon", "coordinates": [[[-78.483858, -0.253950], [-78.482783, -0.251496], [-78.483365, -0.249384], [-78.486489, -0.248676], [-78.487943, -0.252293], [-78.483858, -0.253950]]] } }, { "type": "Feature", "properties": { "Precio": 1.40, "nombre": "Zona 6" }, "geometry": { "type": "Polygon", "coordinates": [[[-78.494899, -0.256401], [-78.490134, -0.257822], [-78.484121, -0.254582], [-78.483861, -0.254044], [-78.488054, -0.252260], [-78.486911, -0.249348], [-78.490203, -0.248915], [-78.494397, -0.250388], [-78.494899, -0.256401]]] } }, { "type": "Feature", "properties": { "Precio": 1.36, "nombre": "Zona 7" }, "geometry": { "type": "Polygon", "coordinates": [[[-78.494965, -0.256274], [-78.494495, -0.250310], [-78.491566, -0.248921], [-78.496632, -0.245244], [-78.498898, -0.252726], [-78.496611, -0.256360], [-78.494965, -0.256274]]] } }, { "type": "Feature", "properties": { "Precio": 1.92, "nombre": "Zona 8" }, "geometry": { "type": "Polygon", "coordinates": [[[-78.500202, -0.247945], [-78.497726, -0.248679], [-78.496658, -0.245132], [-78.492557, -0.248033], [-78.489923, -0.243984], [-78.490905, -0.241735], [-78.493849, -0.240058], [-78.498988, -0.241325], [-78.500202, -0.247945]]] } }, { "type": "Feature", "properties": { "Precio": 2.00, "nombre": "Zona 9" }, "geometry": { "type": "Polygon", "coordinates": [[[-78.492480, -0.248089], [-78.491491, -0.248867], [-78.490239, -0.248801], [-78.486850, -0.249236], [-78.486521, -0.248577], [-78.483356, -0.249315], [-78.485176, -0.245597], [-78.485637, -0.242262], [-78.485097, -0.239150], [-78.489540, -0.237621], [-78.493706, -0.240007], [-78.490885, -0.241576], [-78.489856, -0.243989], [-78.492480, -0.248089]]] } }, { "type": "Feature", "properties": { "Precio": 1.84, "nombre": "Zona 10" }, "geometry": { "type": "Polygon", "coordinates": [[[-78.494240, -0.259052], [-78.492862, -0.261718], [-78.494388, -0.263501], [-78.495786, -0.262393], [-78.496348, -0.266586], [-78.494436, -0.268514], [-78.490066, -0.270843], [-78.487769, -0.269751], [-78.486821, -0.267839], [-78.487463, -0.264337], [-78.484009, -0.265750], [-78.479896, -0.266329], [-78.481383, -0.261362], [-78.484539, -0.262846], [-78.491048, -0.259118], [-78.494240, -0.259052]]] } }, { "type": "Feature", "properties": { "Precio": 1.97, "nombre": "Zona 11" }, "geometry": { "type": "Polygon", "coordinates": [[[-78.490571, -0.284894], [-78.488755, -0.282331], [-78.492173, -0.279576], [-78.496722, -0.276735], [-78.500759, -0.280366], [-78.503472, -0.288205], [-78.490571, -0.284894]]] } }, { "type": "Feature", "properties": { "Precio": 1.91, "nombre": "Zona 12" }, "geometry": { "type": "Polygon", "coordinates": [[[-78.498311, -0.272594], [-78.495536, -0.274184], [-78.496490, -0.276642], [-78.488656, -0.282250], [-78.489870, -0.276815], [-78.489638, -0.271091], [-78.493628, -0.269357], [-78.496259, -0.267015], [-78.498311, -0.272594]]] } } ] };
 
         let carrito = {}; 
         let metodo = 'domicilio';
@@ -118,22 +147,42 @@
         let map = null, userMarker = null;
 
         function renderizarMenu() {
-            const container = document.getElementById('menu-container');
+            const container = document.getElementById('contenedor-menu');
             container.innerHTML = '';
-            PRODUCTOS.forEach((p) => {
-                const cantidad = carrito[p.id] || 0;
+            const categorias = [...new Set(PRODUCTOS.map(p => p.categoria))];
+
+            categorias.forEach(cat => {
                 container.innerHTML += `
-                    <div class="producto-card p-4 flex items-center gap-3">
-                        <div class="imagen-placeholder">🍗</div>
-                        <div class="flex-1">
-                            <h3 class="font-black text-sm uppercase">${p.nombre}</h3>
-                            <p class="text-orange-600 font-bold">$${p.precio.toFixed(2)}</p>
+                    <div class="bg-white rounded-2xl shadow-sm overflow-hidden mb-6">
+                        <div class="bg-gradient-to-r from-orange-50 to-orange-100 px-4 py-3 border-b border-orange-200">
+                            <h2 class="font-black text-orange-800 text-lg uppercase">${cat}</h2>
                         </div>
-                        <div class="flex items-center gap-2 bg-gray-100 p-1 rounded-xl">
-                            ${cantidad > 0 ? `<button onclick="quitarDelCarrito('${p.id}')" class="btn-control bg-white text-red-500 shadow-sm">－</button><span class="font-bold w-4 text-center">${cantidad}</span>` : ''}
-                            <button onclick="agregarAlCarrito('${p.id}')" class="btn-control bg-orange-500 text-white shadow-md">＋</button>
-                        </div>
+                        <div id="cat-${cat}" class="divide-y divide-gray-100"></div>
                     </div>`;
+                
+                const productosCat = PRODUCTOS.filter(p => p.categoria === cat);
+                const catContainer = document.getElementById(`cat-${cat}`);
+
+                productosCat.forEach(p => {
+                    const cantidad = carrito[p.id] || 0;
+                    const imagenHTML = p.imagen 
+                        ? `<div class="imagen-contenedor"><img src="${p.imagen}" class="imagen-plato" alt="${p.nombre}"></div>`
+                        : `<div class="imagen-contenedor"><div class="imagen-placeholder">🍗</div></div>`;
+
+                    catContainer.innerHTML += `
+                        <div class="producto-card p-4 flex items-center gap-3">
+                            ${imagenHTML}
+                            <div class="flex-1">
+                                <h3 class="font-black text-xs uppercase text-gray-700 leading-tight">${p.nombre}</h3>
+                                <p class="text-[10px] text-gray-500 leading-tight my-1">${p.descripcion}</p>
+                                <p class="text-orange-600 font-bold">$${p.precio.toFixed(2)}</p>
+                            </div>
+                            <div class="flex items-center gap-2 bg-gray-100 p-1 rounded-xl">
+                                ${cantidad > 0 ? `<button onclick="quitarDelCarrito('${p.id}')" class="btn-control bg-white text-red-500 shadow-sm">－</button><span class="font-bold w-4 text-center">${cantidad}</span>` : ''}
+                                <button onclick="agregarAlCarrito('${p.id}')" class="btn-control bg-orange-500 text-white shadow-md">＋</button>
+                            </div>
+                        </div>`;
+                });
             });
         }
 
@@ -149,7 +198,6 @@
             
             let subtotal = 0;
             PRODUCTOS.forEach(p => { if(carrito[p.id]) subtotal += p.precio * carrito[p.id]; });
-
             const entregaBloqueada = metodo === 'domicilio' && !zonaEncontrada;
 
             if (entregaBloqueada) {
@@ -164,7 +212,6 @@
                 document.getElementById('total-precio').innerText = `$${total.toFixed(2)}`;
                 document.getElementById('label-envio').innerText = metodo === 'domicilio' ? `Envío: $${envioCosto.toFixed(2)}` : "Retiro en local";
             }
-
             document.getElementById('carrito-count').innerText = totalItems;
             bar.classList.remove('hidden');
         }
@@ -172,7 +219,7 @@
         function initMap() {
             map = L.map('map', { zoomControl: false }).setView(LOCAL_COORDS, 15);
             L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(map);
-            L.marker(LOCAL_COORDS).addTo(map).bindPopup("<b>Damn Monkey</b>");
+            L.marker(LOCAL_COORDS).addTo(map).bindPopup("<b>Danm Monkey</b>");
             map.on('click', (e) => ubicarManual(e.latlng));
         }
 
@@ -184,17 +231,13 @@
 
         function calcularPrecioEnvio(latlng) {
             const punto = turf.point([latlng.lng, latlng.lat]);
-            zonaEncontrada = false;
-            envioCosto = 0;
-
+            zonaEncontrada = false; envioCosto = 0;
             for (let zona of ZONAS_ENVIO.features) {
                 if (turf.booleanPointInPolygon(punto, zona)) {
                     envioCosto = zona.properties.Precio;
-                    zonaEncontrada = true;
-                    break; 
+                    zonaEncontrada = true; break; 
                 }
             }
-
             const status = document.getElementById('envio-status');
             if (zonaEncontrada) {
                 status.innerHTML = `✅ Zona identificada - Envío: $${envioCosto.toFixed(2)}`;
@@ -209,8 +252,7 @@
         function obtenerUbicacion() {
             navigator.geolocation.getCurrentPosition((pos) => {
                 const latlng = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                map.setView(latlng, 17);
-                ubicarManual(latlng);
+                map.setView(latlng, 17); ubicarManual(latlng);
             }, () => alert("Por favor activa tu GPS"), { enableHighAccuracy: true });
         }
 
@@ -226,15 +268,35 @@
 
         function enviarWhatsApp() {
             if (metodo === 'domicilio' && !zonaEncontrada) return; 
-
+            
+            let subtotal = 0;
             let texto = `*NUEVO PEDIDO - DAMN MONKEY 🐵🔥*%0A%0A`;
-            PRODUCTOS.forEach(p => { if(carrito[p.id]) texto += `• ${carrito[p.id]}x ${p.nombre}%0A`; });
-            texto += `%0A*Método:* ${metodo === 'domicilio' ? '🛵 Domicilio' : '🥡 Retiro'}%0A`;
-            if(metodo === 'domicilio' && userMarker) {
-                const l = userMarker.getLatLng();
-                texto += `📍 *Ubicación:* http://maps.google.com/maps?q=${l.lat},${l.lng}%0A`;
+            
+            PRODUCTOS.forEach(p => { 
+                if(carrito[p.id]) {
+                    const subtotalItem = p.precio * carrito[p.id];
+                    texto += `• ${carrito[p.id]}x ${p.nombre} ($${subtotalItem.toFixed(2)})%0A`; 
+                    subtotal += subtotalItem;
+                }
+            });
+
+            texto += `%0A*--- RESUMEN ---*%0A`;
+            texto += `*Productos:* $${subtotal.toFixed(2)}%0A`;
+            
+            if(metodo === 'domicilio') {
+                texto += `*Envío:* $${envioCosto.toFixed(2)}%0A`;
+                texto += `*Método:* 🛵 Domicilio%0A`;
+                if(userMarker) {
+                    const l = userMarker.getLatLng();
+                    texto += `📍 *Ubicación:* https://www.google.com/maps?q=${l.lat},${l.lng}%0A`;
+                }
+            } else {
+                texto += `*Método:* 🥡 Retiro en local%0A`;
             }
-            texto += `%0A*TOTAL: ${document.getElementById('total-precio').innerText}*`;
+
+            const totalFinal = metodo === 'domicilio' ? (subtotal + envioCosto) : subtotal;
+            texto += `%0A*TOTAL A PAGAR: $${totalFinal.toFixed(2)}*`;
+            
             window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${texto}`, '_blank');
         }
 
