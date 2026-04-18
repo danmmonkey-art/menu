@@ -9,9 +9,10 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
     <style>
-        #map { height: 260px; border-radius: 16px; margin-bottom: 1rem; width: 100%; border: 2px solid #fed7aa; z-index: 10; }
-        .producto-card { border-bottom: 1px solid #f0f0f0; transition: background 0.2s; }
+        #map { height: 260px; border-radius: 16px; margin-bottom: 1rem; width: 100%; border: 2px solid #fed7aa; }
+        .producto-card { border-bottom: 1px solid #f0f0f0; }
         .opcion-entrega.active { border-color: #ea580c; background-color: #fff7ed; border-width: 2px; }
+        .carrito-badge { position: absolute; top: -8px; right: -8px; background: #ea580c; color: white; border-radius: 50%; width: 22px; height: 22px; font-size: 12px; display: flex; align-items: center; justify-content: center; border: 2px solid white; }
     </style>
 </head>
 <body class="bg-gray-50 pb-32">
@@ -23,27 +24,23 @@
 
     <main class="max-w-md mx-auto p-4">
         <div class="bg-white p-4 rounded-2xl shadow-sm mb-4">
-            <h2 class="font-bold mb-3">🛵 ¿Cómo recibes tu pedido?</h2>
+            <h2 class="font-bold mb-3">🛵 Entrega</h2>
             <div class="grid grid-cols-2 gap-3 mb-4">
-                <button onclick="setMetodo('domicilio')" id="btn-domicilio" class="opcion-entrega active bg-gray-50 p-3 rounded-xl font-bold">🛵 Domicilio</button>
-                <button onclick="setMetodo('retiro')" id="btn-retiro" class="opcion-entrega bg-gray-50 p-3 rounded-xl font-bold">🥡 Retiro</button>
+                <button onclick="setMetodo('domicilio')" id="btn-domicilio" class="opcion-entrega active bg-gray-50 p-3 rounded-xl">🛵 Domicilio</button>
+                <button onclick="setMetodo('retiro')" id="btn-retiro" class="opcion-entrega bg-gray-50 p-3 rounded-xl">🥡 Retiro</button>
             </div>
             <div id="seccion-mapa">
                 <div id="map"></div>
-                <button onclick="obtenerUbicacion()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold mb-2 shadow-md">🎯 Usar mi GPS</button>
-                <p class="text-[10px] text-center text-gray-400">Toca el mapa para marcar tu ubicación exacta</p>
-            </div>
-            <div id="seccion-retiro" class="hidden p-4 bg-orange-50 rounded-xl text-center border border-orange-200">
-                <p class="text-orange-800 font-bold italic">📍 Te esperamos en Conocoto</p>
+                <button onclick="obtenerUbicacion()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold mb-2">🎯 Usar mi GPS</button>
             </div>
         </div>
 
         <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
             <div class="bg-orange-50 px-4 py-3 border-b border-orange-100 flex justify-between">
                 <h2 class="font-bold text-orange-800">🍗 NUESTRO MENÚ</h2>
-                <span class="text-[10px] bg-green-200 text-green-700 px-2 py-0.5 rounded-full font-bold">SINCRO</span>
+                <span class="text-[10px] bg-green-200 text-green-700 px-2 py-0.5 rounded-full font-bold">VIVO</span>
             </div>
-            <div id="loading" class="p-10 text-center text-orange-500 font-bold italic">Cargando el menú del día...</div>
+            <div id="loading" class="p-10 text-center text-orange-500 font-bold italic">Cargando delicias...</div>
             <div id="menu-container"></div>
         </div>
     </main>
@@ -51,39 +48,30 @@
     <div id="carrito-bar" class="fixed bottom-0 inset-x-0 bg-white border-t-4 border-orange-500 p-4 shadow-2xl hidden max-w-md mx-auto z-50">
         <div class="flex justify-between items-center">
             <div>
-                <span id="label-envio" class="block text-[10px] text-orange-500 font-bold uppercase">ENVÍO: --</span>
+                <span id="label-envio" class="block text-[10px] text-orange-500 font-bold">ENVÍO: --</span>
                 <span id="total-precio" class="text-2xl font-black text-orange-600">$0.00</span>
             </div>
-            <button onclick="enviarWhatsApp()" class="bg-green-500 text-white px-8 py-3 rounded-2xl font-black shadow-lg active:scale-95 transition">PEDIR ✅</button>
+            <button onclick="enviarWhatsApp()" class="bg-green-500 text-white px-8 py-3 rounded-2xl font-black shadow-lg">PEDIR ✅</button>
         </div>
     </div>
 
     <script>
-        // TU LINK DE EXCEL (Asegúrate que siga siendo el mismo)
         const EXCEL_CSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTjnoFxILR8LIx_ELGazuvaVKKnSP5NBltgAK6qF_ig6Lww4vdXJ-dhBPOKj5nWdqDwGyWA3ubNahfQ/pub?output=csv';
         const WHATSAPP = '593983730006';
-        
         let PRODUCTOS = [], carrito = {}, metodo = 'domicilio', envioCosto = 0, userPos = null;
 
         async function cargar() {
             try {
-                // El cache-buster (Math.random) obliga a descargar la versión más nueva siempre
                 const res = await fetch(EXCEL_CSV + '&cache=' + Math.random());
-                if(!res.ok) throw new Error();
                 const csv = await res.text();
                 const filas = csv.split(/\r?\n/).slice(1);
-                
                 PRODUCTOS = filas.map(f => {
                     const c = f.split(/[,;]/);
-                    if(c.length < 3) return null;
-                    return { id: c[0].trim(), nombre: c[1].trim(), precio: parseFloat(c[2].replace(',', '.')), icono: c[3] ? c[3].trim() : '🍗' };
-                }).filter(p => p && p.nombre);
-
-                document.getElementById('loading').style.display = 'none';
+                    return { id: c[0], nombre: c[1], precio: parseFloat(c[2].replace(',', '.')), icono: c[3] || '🍗' };
+                }).filter(p => p.nombre);
+                document.getElementById('loading').remove();
                 dibujar();
-            } catch (e) { 
-                document.getElementById('loading').innerHTML = "❌ Error al cargar platos.<br><small>Verifica que el Excel esté 'Publicado como CSV'</small>"; 
-            }
+            } catch (e) { document.getElementById('loading').innerText = "❌ Error al conectar."; }
         }
 
         function dibujar() {
@@ -91,10 +79,10 @@
             container.innerHTML = PRODUCTOS.map(p => `
                 <div class="p-4 flex items-center gap-3 producto-card">
                     <div class="text-3xl">${p.icono}</div>
-                    <div class="flex-1 text-sm font-bold uppercase leading-tight">${p.nombre}<br><span class="text-orange-600">$${p.precio.toFixed(2)}</span></div>
+                    <div class="flex-1 text-sm font-bold uppercase">${p.nombre}<br><span class="text-orange-600">$${p.precio.toFixed(2)}</span></div>
                     <div class="flex items-center gap-2 bg-gray-100 p-1 rounded-lg">
                         <button onclick="cambiar('${p.id}',-1)" class="w-8 h-8 bg-white rounded shadow text-red-500 font-bold">-</button>
-                        <span class="w-4 text-center text-xs font-black">${carrito[p.id] || 0}</span>
+                        <span class="w-4 text-center">${carrito[p.id] || 0}</span>
                         <button onclick="cambiar('${p.id}',1)" class="w-8 h-8 bg-orange-500 text-white rounded shadow font-bold">+</button>
                     </div>
                 </div>`).join('');
@@ -112,46 +100,33 @@
             PRODUCTOS.forEach(p => sub += (carrito[p.id] || 0) * p.precio);
             const total = sub > 0 ? sub + (metodo === 'domicilio' ? envioCosto : 0) : 0;
             document.getElementById('total-precio').innerText = `$${total.toFixed(2)}`;
-            document.getElementById('label-envio').innerText = metodo === 'domicilio' ? `ENVÍO: $${envioCosto.toFixed(2)}` : 'RETIRO EN LOCAL';
+            document.getElementById('label-envio').innerText = metodo === 'domicilio' ? `ENVÍO: $${envioCosto.toFixed(2)}` : 'RETIRO LOCAL';
             document.getElementById('carrito-bar').classList.toggle('hidden', sub === 0);
         }
 
-        // MAPA
+        // Lógica de mapa simplificada para velocidad
         let map = L.map('map', {zoomControl: false}).setView([-0.266, -78.500], 15);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(map);
         let marker;
-        
         map.on('click', e => {
             if(marker) map.removeLayer(marker);
             marker = L.marker(e.latlng).addTo(map);
             userPos = e.latlng;
-            envioCosto = 1.50; // Ajusta este valor si tienes costo fijo
+            envioCosto = 1.50; // Aquí podrías poner tu lógica de polígonos
             actualizar();
         });
-
-        function obtenerUbicacion() {
-            navigator.geolocation.getCurrentPosition((pos) => {
-                const ll = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                map.setView(ll, 17);
-                map.fire('click', { latlng: ll });
-            }, () => alert("Por favor activa el GPS"), { enableHighAccuracy: true });
-        }
 
         function setMetodo(t) {
             metodo = t;
             document.getElementById('btn-domicilio').classList.toggle('active', t === 'domicilio');
             document.getElementById('btn-retiro').classList.toggle('active', t === 'retiro');
             document.getElementById('seccion-mapa').classList.toggle('hidden', t === 'retiro');
-            document.getElementById('seccion-retiro').classList.toggle('hidden', t === 'domicilio');
             actualizar();
-            if(t === 'domicilio') setTimeout(() => map.invalidateSize(), 200);
         }
 
         function enviarWhatsApp() {
-            if(metodo === 'domicilio' && !userPos) return alert("Por favor marca tu ubicación en el mapa");
-            let msj = `*NUEVO PEDIDO - DAMN MONKEY 🐵🔥*%0A%0A`;
+            let msj = `*DAMN MONKEY 🐵🔥*%0A%0A`;
             PRODUCTOS.forEach(p => { if(carrito[p.id]) msj += `• ${carrito[p.id]}x ${p.nombre}%0A`; });
-            msj += `%0A*MÉTODO:* ${metodo.toUpperCase()}`;
             msj += `%0A*TOTAL: ${document.getElementById('total-precio').innerText}*%0A`;
             if(metodo === 'domicilio' && userPos) msj += `%0A📍 Ubicación: https://www.google.com/maps?q=${userPos.lat},${userPos.lng}`;
             window.open(`https://wa.me/${WHATSAPP}?text=${msj}`);
