@@ -1,0 +1,1849 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Damn Monkey - Menu Digital</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;600;700;800;900&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --orange: #f97316;
+            --orange-dark: #c2410c;
+            --orange-glow: rgba(249,115,22,0.35);
+            --bg: #080808;
+            --surface: #111111;
+            --surface2: #181818;
+            --surface3: #222222;
+            --surface4: #2a2a2a;
+            --border: rgba(255,255,255,0.07);
+            --border-subtle: rgba(255,255,255,0.04);
+            --text: #f0f0f0;
+            --text-muted: #888;
+            --text-dim: #444;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            padding-bottom: 130px;
+            min-height: 100vh;
+            position: relative;
+        }
+        body::after {
+            content: '';
+            position: fixed;
+            top: -200px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 600px;
+            height: 400px;
+            background: radial-gradient(ellipse, rgba(249,115,22,0.07) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.5;
+        }
+        header {
+            background: rgba(8,8,8,0.92);
+            backdrop-filter: blur(24px) saturate(1.6);
+            -webkit-backdrop-filter: blur(24px) saturate(1.6);
+            border-bottom: 1px solid rgba(249,115,22,0.12);
+            padding: 20px 20px 18px;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 20;
+        }
+        .header-eyebrow {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.6rem;
+            font-weight: 700;
+            letter-spacing: 0.35em;
+            color: var(--orange);
+            text-transform: uppercase;
+            margin-bottom: 6px;
+            opacity: 0.8;
+        }
+        .header-logo {
+            font-family: 'Bebas Neue', cursive;
+            font-size: 3rem;
+            letter-spacing: 0.1em;
+            background: linear-gradient(135deg, #f97316 0%, #fb923c 45%, #fcd34d 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1;
+            filter: drop-shadow(0 0 20px rgba(249,115,22,0.3));
+        }
+        .header-divider {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .header-divider-line {
+            width: 40px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(249,115,22,0.5));
+        }
+        .header-divider-line:last-child {
+            background: linear-gradient(270deg, transparent, rgba(249,115,22,0.5));
+        }
+        .header-divider-dot {
+            width: 5px;
+            height: 5px;
+            background: var(--orange);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--orange);
+        }
+        .header-sub {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.65rem;
+            font-weight: 600;
+            letter-spacing: 0.2em;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+        .card {
+            background: linear-gradient(160deg, #161616 0%, #121212 100%);
+            border: 1px solid var(--border);
+            border-radius: 22px;
+            overflow: hidden;
+            margin-bottom: 16px;
+            position: relative;
+            box-shadow: 0 1px 0 0 rgba(255,255,255,0.04) inset, 0 4px 24px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.5);
+            animation: cardIn 0.4s ease both;
+        }
+        @keyframes cardIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--orange) 0%, rgba(249,115,22,0.3) 60%, transparent 100%);
+        }
+        .card-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-subtle);
+            background: rgba(249,115,22,0.04);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .card-header-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--orange);
+            border-radius: 50%;
+            box-shadow: 0 0 6px var(--orange);
+            flex-shrink: 0;
+        }
+        .card-title {
+            font-family: 'Bebas Neue', cursive;
+            font-size: 1.25rem;
+            letter-spacing: 0.12em;
+            color: var(--text);
+        }
+        .opcion-entrega {
+            transition: all 0.25s ease;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            cursor: pointer;
+            background: var(--surface2);
+            padding: 14px 8px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+        .opcion-entrega:hover {
+            border-color: rgba(249,115,22,0.35);
+            background: rgba(249,115,22,0.06);
+            transform: translateY(-1px);
+        }
+        .opcion-entrega.active {
+            border-color: var(--orange);
+            background: rgba(249,115,22,0.1);
+            box-shadow: 0 0 20px rgba(249,115,22,0.2), 0 2px 8px rgba(0,0,0,0.4);
+        }
+        .opcion-entrega .icon-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--surface3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 8px;
+            font-size: 17px;
+            border: 1px solid var(--border);
+        }
+        .opcion-entrega.active .icon-circle {
+            background: rgba(249,115,22,0.15);
+            border-color: rgba(249,115,22,0.5);
+            box-shadow: 0 0 12px rgba(249,115,22,0.2);
+        }
+        .opcion-label {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.6rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-muted);
+            line-height: 1.3;
+        }
+        .opcion-entrega.active .opcion-label { color: var(--orange); }
+        #map {
+            height: 250px;
+            border-radius: 14px;
+            margin-bottom: 12px;
+            z-index: 1;
+            width: 100%;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+        .info-box {
+            border-radius: 16px;
+            padding: 18px;
+            text-align: center;
+            border: 1px solid;
+        }
+        .info-box.retiro {
+            background: rgba(249,115,22,0.06);
+            border-color: rgba(249,115,22,0.2);
+        }
+        .info-box.delivery {
+            background: rgba(139,92,246,0.06);
+            border-color: rgba(139,92,246,0.2);
+        }
+        .app-delivery-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 14px;
+        }
+        .app-delivery-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            padding: 11px 10px;
+            border-radius: 12px;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 800;
+            font-size: 0.7rem;
+            letter-spacing: 0.04em;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            border: 1px solid;
+        }
+        .app-delivery-btn:active { transform: scale(0.96); }
+        .btn-rappi {
+            background: rgba(255,75,0,0.12);
+            border-color: rgba(255,75,0,0.35);
+            color: #ff7043;
+            box-shadow: 0 3px 12px rgba(255,75,0,0.15);
+        }
+        .btn-rappi:hover { background: rgba(255,75,0,0.2); box-shadow: 0 4px 18px rgba(255,75,0,0.3); }
+        .btn-pedidosya {
+            background: rgba(233,30,99,0.12);
+            border-color: rgba(233,30,99,0.35);
+            color: #f06292;
+            box-shadow: 0 3px 12px rgba(233,30,99,0.15);
+        }
+        .btn-pedidosya:hover { background: rgba(233,30,99,0.2); box-shadow: 0 4px 18px rgba(233,30,99,0.3); }
+        .app-btn-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 900;
+            flex-shrink: 0;
+        }
+        .app-btn-icon.rappi-icon { background: #ff4500; color: white; }
+        .app-btn-icon.pedidosya-icon { background: #e91e63; color: white; }
+        #envio-status {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-align: center;
+            padding: 12px 14px;
+            border-radius: 12px;
+            margin-top: 10px;
+        }
+        .fuera-cobertura-box {
+            margin-top: 10px;
+            background: rgba(239,68,68,0.06);
+            border: 1px solid rgba(239,68,68,0.2);
+            border-radius: 14px;
+            padding: 14px 16px;
+            text-align: center;
+        }
+        .fuera-cobertura-label {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: #f87171;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+        .btn-switch-delivery {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            color: white;
+            padding: 10px 18px;
+            border-radius: 10px;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 800;
+            font-size: 0.72rem;
+            letter-spacing: 0.05em;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(124,58,237,0.35);
+            transition: all 0.2s;
+        }
+        .btn-switch-delivery:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(124,58,237,0.45); }
+        .btn-switch-delivery:active { transform: scale(0.96); }
+        .btn-ubicacion {
+            width: 100%;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: white;
+            padding: 12px;
+            border-radius: 12px;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            font-size: 0.82rem;
+            letter-spacing: 0.04em;
+            border: none;
+            cursor: pointer;
+            margin-bottom: 10px;
+            transition: all 0.2s;
+            box-shadow: 0 4px 18px rgba(37,99,235,0.35);
+        }
+        .btn-ubicacion:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-ubicacion:active { transform: scale(0.97); }
+        .producto-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border-subtle);
+            transition: background 0.2s;
+        }
+        .producto-card:last-child { border-bottom: none; }
+        .producto-card:hover { background: rgba(249,115,22,0.03); }
+        .imagen-contenedor {
+            width: 74px;
+            height: 74px;
+            flex-shrink: 0;
+            border-radius: 14px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+        }
+        .imagen-plato {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+        .imagen-contenedor:hover .imagen-plato { transform: scale(1.06); }
+        .imagen-placeholder {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(249,115,22,0.12), rgba(249,115,22,0.04));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        .nombre-producto {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.73rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--text);
+            line-height: 1.3;
+        }
+        .desc-producto {
+            font-size: 0.64rem;
+            color: var(--text-dim);
+            line-height: 1.45;
+            margin-top: 3px;
+            margin-bottom: 5px;
+        }
+        .precio-final {
+            color: var(--orange);
+            font-weight: 900;
+            font-size: 0.92rem;
+            font-family: 'Montserrat', sans-serif;
+            filter: drop-shadow(0 0 6px rgba(249,115,22,0.3));
+        }
+        .precio-original {
+            text-decoration: line-through;
+            color: var(--text-dim);
+            font-size: 0.65rem;
+        }
+        .badge-descuento {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            color: white;
+            font-size: 0.55rem;
+            font-weight: 900;
+            padding: 2px 6px;
+            border-radius: 5px;
+            letter-spacing: 0.03em;
+            font-family: 'Montserrat', sans-serif;
+        }
+        .salsa-pill-menu {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            font-size: 0.5rem;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 5px;
+            background: rgba(249,115,22,0.1);
+            border: 1px solid rgba(249,115,22,0.2);
+            color: var(--orange);
+            font-family: 'Montserrat', sans-serif;
+            letter-spacing: 0.02em;
+        }
+        .salsa-note {
+            font-size: 0.5rem;
+            color: var(--text-dim);
+            font-style: italic;
+            margin-top: 4px;
+            font-family: 'DM Sans', sans-serif;
+        }
+        .controles-producto {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+        .btn-control {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 9px;
+            font-weight: bold;
+            font-size: 17px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .btn-plus {
+            background: linear-gradient(135deg, var(--orange), var(--orange-dark));
+            color: white;
+            box-shadow: 0 3px 12px var(--orange-glow), inset 0 1px 0 rgba(255,255,255,0.2);
+        }
+        .btn-plus:active { transform: scale(0.90); }
+        .btn-minus {
+            background: rgba(239,68,68,0.1);
+            color: #ef4444;
+            border: 1px solid rgba(239,68,68,0.2);
+        }
+        .btn-minus:active { transform: scale(0.90); }
+        .cantidad-badge {
+            font-weight: 900;
+            font-size: 13px;
+            color: var(--orange);
+            min-width: 20px;
+            text-align: center;
+            font-family: 'Montserrat', sans-serif;
+            background: rgba(249,115,22,0.1);
+            border-radius: 6px;
+            padding: 2px 4px;
+        }
+        #carrito-bar {
+            background: rgba(12,12,12,0.97);
+            backdrop-filter: blur(24px) saturate(1.5);
+            -webkit-backdrop-filter: blur(24px) saturate(1.5);
+            border-top: 2px solid var(--orange);
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            max-width: 448px;
+            margin: 0 auto;
+            padding: 14px 18px;
+            z-index: 30;
+            box-shadow: 0 -8px 40px rgba(0,0,0,0.6);
+        }
+        #carrito-bar.hidden { display: none; }
+        .carrito-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: var(--orange);
+            color: white;
+            border-radius: 999px;
+            width: 20px;
+            height: 20px;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            border: 2px solid var(--bg);
+            font-family: 'Montserrat', sans-serif;
+            box-shadow: 0 0 8px rgba(249,115,22,0.6);
+        }
+        #label-envio {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.58rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            color: var(--orange);
+        }
+        #total-precio {
+            font-family: 'Bebas Neue', cursive;
+            font-size: 2rem;
+            letter-spacing: 0.05em;
+            color: var(--text);
+            line-height: 1;
+            filter: drop-shadow(0 0 8px rgba(249,115,22,0.2));
+        }
+        .btn-ver-carrito {
+            background: linear-gradient(135deg, var(--orange), var(--orange-dark));
+            color: white;
+            padding: 13px 26px;
+            border-radius: 13px;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 800;
+            font-size: 0.78rem;
+            letter-spacing: 0.07em;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 22px var(--orange-glow), inset 0 1px 0 rgba(255,255,255,0.2);
+            transition: all 0.2s;
+        }
+        .btn-ver-carrito:hover { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(249,115,22,0.5); }
+        .btn-ver-carrito:active { transform: scale(0.95); }
+        .carrito-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.75);
+            z-index: 40;
+            backdrop-filter: blur(5px);
+        }
+        .carrito-overlay.visible { display: block; }
+        #panel-carrito {
+            transform: translateY(100%);
+            transition: transform 0.38s cubic-bezier(.4,0,.2,1);
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            max-width: 448px;
+            margin: 0 auto;
+            background: #111111;
+            border-top: 2px solid var(--orange);
+            border-radius: 26px 26px 0 0;
+            z-index: 50;
+            max-height: 88vh;
+            overflow-y: auto;
+            box-shadow: 0 -24px 80px rgba(0,0,0,0.7);
+        }
+        #panel-carrito.abierto { transform: translateY(0); }
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 20px 16px;
+            position: sticky;
+            top: 0;
+            background: #111111;
+            border-bottom: 1px solid var(--border);
+            border-radius: 26px 26px 0 0;
+            z-index: 10;
+        }
+        .panel-title {
+            font-family: 'Bebas Neue', cursive;
+            font-size: 1.7rem;
+            letter-spacing: 0.1em;
+            color: var(--text);
+        }
+        .panel-subtitle {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.62rem;
+            font-weight: 600;
+            color: var(--text-dim);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+        .btn-cerrar {
+            background: var(--surface3);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        .btn-cerrar:hover { color: var(--text); border-color: var(--orange); background: rgba(249,115,22,0.1); }
+        .pago-btn {
+            transition: all 0.2s;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 9px 16px;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            font-size: 0.75rem;
+            cursor: pointer;
+            background: var(--surface2);
+            color: var(--text-muted);
+        }
+        .pago-btn.selected {
+            border-color: var(--orange);
+            background: rgba(249,115,22,0.1);
+            color: var(--orange);
+            box-shadow: 0 0 14px rgba(249,115,22,0.2);
+        }
+        .sub-pago-btn {
+            transition: all 0.2s;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 8px 12px;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            font-size: 0.68rem;
+            cursor: pointer;
+            background: var(--surface3);
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .sub-pago-btn.selected {
+            border-color: #60a5fa;
+            background: rgba(96,165,250,0.12);
+            color: #93c5fd;
+            box-shadow: 0 0 12px rgba(96,165,250,0.2);
+        }
+        .sub-pago-btn .sub-icon {
+            width: 18px;
+            height: 18px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 900;
+            flex-shrink: 0;
+        }
+        .transfer-info-box {
+            background: rgba(96,165,250,0.06);
+            border: 1px solid rgba(96,165,250,0.2);
+            border-radius: 14px;
+            padding: 14px 16px;
+            margin-top: 12px;
+        }
+        .transfer-info-box.payphone {
+            background: rgba(52,211,153,0.06);
+            border-color: rgba(52,211,153,0.2);
+        }
+        .transfer-info-label {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.6rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            color: #93c5fd;
+            margin-bottom: 8px;
+        }
+        .transfer-info-box.payphone .transfer-info-label { color: #6ee7b7; }
+        .transfer-info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        .transfer-info-key {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.65rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+        .transfer-info-val {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.7rem;
+            font-weight: 800;
+            color: var(--text);
+        }
+        .copy-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+            gap: 8px;
+        }
+        .copy-row-left {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            flex: 1;
+        }
+        .btn-copiar {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(96,165,250,0.1);
+            border: 1px solid rgba(96,165,250,0.3);
+            border-radius: 7px;
+            padding: 5px 9px;
+            color: #93c5fd;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            font-size: 0.58rem;
+            letter-spacing: 0.04em;
+            cursor: pointer;
+            transition: all 0.18s ease;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .btn-copiar:hover { background: rgba(96,165,250,0.2); border-color: rgba(96,165,250,0.6); transform: translateY(-1px); }
+        .btn-copiar:active { transform: scale(0.94); }
+        .btn-copiar.copiado { background: rgba(52,211,153,0.12); border-color: rgba(52,211,153,0.4); color: #6ee7b7; }
+        .payphone-link {
+            display: inline-block;
+            margin-top: 8px;
+            background: linear-gradient(135deg, #059669, #047857);
+            color: white;
+            padding: 9px 16px;
+            border-radius: 10px;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 800;
+            font-size: 0.7rem;
+            letter-spacing: 0.04em;
+            text-decoration: none;
+            box-shadow: 0 3px 12px rgba(5,150,105,0.35);
+            transition: all 0.2s;
+            width: 100%;
+            text-align: center;
+        }
+        .payphone-link:hover { opacity: 0.9; transform: translateY(-1px); }
+        .payphone-surcharge {
+            background: rgba(251,191,36,0.1);
+            border: 1px solid rgba(251,191,36,0.25);
+            border-radius: 8px;
+            padding: 7px 10px;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: #fbbf24;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .casi-listo-msg {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-top: 14px;
+            background: linear-gradient(135deg, rgba(34,197,94,0.08), rgba(34,197,94,0.04));
+            border: 1px solid rgba(34,197,94,0.25);
+            border-radius: 14px;
+            padding: 14px 14px;
+            transition: all 0.2s ease;
+        }
+        .casi-listo-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: rgba(34,197,94,0.15);
+            border: 1px solid rgba(34,197,94,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .casi-listo-text { flex: 1; }
+        .casi-listo-title {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.72rem;
+            font-weight: 900;
+            color: #4ade80;
+            letter-spacing: 0.04em;
+            margin-bottom: 4px;
+        }
+        .casi-listo-body {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.63rem;
+            font-weight: 600;
+            color: #86efac;
+            line-height: 1.5;
+        }
+        .efectivo-box {
+            background: rgba(249,115,22,0.06);
+            border: 1px solid rgba(249,115,22,0.2);
+            border-radius: 14px;
+            padding: 14px 16px;
+            margin-top: 12px;
+        }
+        .efectivo-label {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.6rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            color: var(--orange);
+            margin-bottom: 10px;
+        }
+        .efectivo-input {
+            width: 100%;
+            background: var(--surface3);
+            border: 1px solid rgba(249,115,22,0.3);
+            border-radius: 10px;
+            padding: 10px 14px;
+            color: var(--text);
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .efectivo-input:focus { border-color: var(--orange); box-shadow: 0 0 0 2px rgba(249,115,22,0.15); }
+        .efectivo-cambio-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+            padding: 8px 10px;
+            background: rgba(249,115,22,0.08);
+            border-radius: 9px;
+        }
+        .efectivo-cambio-label {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: var(--text-muted);
+        }
+        .efectivo-cambio-valor {
+            font-family: 'Bebas Neue', cursive;
+            font-size: 1.2rem;
+            letter-spacing: 0.06em;
+        }
+        .resumen-box {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 18px;
+            margin: 10px 16px;
+        }
+        .resumen-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            font-family: 'Montserrat', sans-serif;
+        }
+        .resumen-row span:last-child { font-weight: 700; color: var(--text); }
+        .resumen-total {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid var(--border);
+            padding-top: 14px;
+            margin-top: 6px;
+        }
+        .resumen-total-label {
+            font-family: 'Bebas Neue', cursive;
+            font-size: 1.1rem;
+            letter-spacing: 0.12em;
+            color: var(--text-muted);
+        }
+        .resumen-total-valor {
+            font-family: 'Bebas Neue', cursive;
+            font-size: 2.1rem;
+            letter-spacing: 0.05em;
+            color: var(--orange);
+            filter: drop-shadow(0 0 8px rgba(249,115,22,0.35));
+        }
+        .btn-pedir {
+            width: 100%;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+            padding: 17px;
+            border-radius: 15px;
+            font-family: 'Bebas Neue', cursive;
+            font-size: 1.35rem;
+            letter-spacing: 0.18em;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 6px 28px rgba(34,197,94,0.35), inset 0 1px 0 rgba(255,255,255,0.15);
+            transition: all 0.2s;
+        }
+        .btn-pedir:hover { transform: translateY(-1px); box-shadow: 0 8px 32px rgba(34,197,94,0.45); }
+        .btn-pedir:active { transform: scale(0.97); }
+        .btn-disabled {
+            background: var(--surface3) !important;
+            color: var(--text-dim) !important;
+            cursor: not-allowed !important;
+            box-shadow: none !important;
+            opacity: 0.6;
+            transform: none !important;
+        }
+        .carrito-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 15px;
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+        .salsa-pill-cart {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            font-size: 0.5rem;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 5px;
+            background: rgba(249,115,22,0.1);
+            border: 1px solid rgba(249,115,22,0.2);
+            color: var(--orange);
+            font-family: 'Montserrat', sans-serif;
+        }
+        .btn-cambiar-salsas {
+            background: none;
+            border: none;
+            color: var(--orange);
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.55rem;
+            font-weight: 700;
+            cursor: pointer;
+            padding: 0;
+            text-decoration: underline;
+            text-underline-offset: 2px;
+            transition: opacity 0.2s;
+        }
+        .btn-cambiar-salsas:hover { opacity: 0.7; }
+        .seccion-label {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.62rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.18em;
+            color: var(--text-dim);
+            margin-bottom: 10px;
+        }
+        .hidden { display: none !important; }
+        ::-webkit-scrollbar { width: 3px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 2px; }
+        #input-comprobante { display: none; }
+        .dm-toast {
+            position: fixed;
+            top: 88px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-14px);
+            background: rgba(220,38,38,0.95);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            font-size: 0.75rem;
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(.4,0,.2,1);
+            box-shadow: 0 8px 30px rgba(220,38,38,0.4);
+            max-width: 92%;
+            backdrop-filter: blur(10px);
+            pointer-events: none;
+            line-height: 1.4;
+        }
+        .dm-toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+        .salsa-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.82);
+            z-index: 60;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .salsa-overlay.visible { display: flex; }
+        .salsa-panel {
+            background: linear-gradient(160deg, #181818 0%, #131313 100%);
+            border: 1px solid rgba(249,115,22,0.2);
+            border-radius: 24px;
+            padding: 24px 22px 22px;
+            max-width: 340px;
+            width: 100%;
+            box-shadow: 0 24px 80px rgba(0,0,0,0.7), 0 0 60px rgba(249,115,22,0.08);
+            animation: salsaIn 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .salsa-panel::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--orange) 0%, rgba(249,115,22,0.3) 60%, transparent 100%);
+        }
+        @keyframes salsaIn {
+            from { opacity: 0; transform: translateY(20px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .salsa-header { text-align: center; margin-bottom: 20px; }
+        .salsa-title {
+            font-family: 'Bebas Neue', cursive;
+            font-size: 1.5rem;
+            letter-spacing: 0.12em;
+            color: var(--text);
+        }
+        .salsa-subtitle {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.62rem;
+            font-weight: 600;
+            color: var(--text-dim);
+            margin-top: 4px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+        .salsa-producto-name {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.68rem;
+            font-weight: 800;
+            color: var(--orange);
+            margin-top: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .salsa-options { display: flex; flex-direction: column; gap: 10px; }
+        .salsa-chip {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            border-radius: 14px;
+            border: 1px solid var(--border);
+            background: var(--surface2);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .salsa-chip:hover { border-color: rgba(249,115,22,0.3); background: rgba(249,115,22,0.04); }
+        .salsa-chip.selected { border-color: var(--orange); background: rgba(249,115,22,0.1); box-shadow: 0 0 20px rgba(249,115,22,0.15); }
+        .salsa-chip.disabled { opacity: 0.35; cursor: not-allowed; }
+        .salsa-chip-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 19px;
+            flex-shrink: 0;
+            background: var(--surface3);
+            border: 1px solid var(--border);
+            transition: all 0.2s;
+        }
+        .salsa-chip.selected .salsa-chip-icon { background: rgba(249,115,22,0.15); border-color: rgba(249,115,22,0.4); }
+        .salsa-chip-name {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            transition: color 0.2s;
+        }
+        .salsa-chip.selected .salsa-chip-name { color: var(--orange); }
+        .salsa-chip-check {
+            width: 22px;
+            height: 22px;
+            border-radius: 7px;
+            border: 2px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.2s;
+            font-size: 12px;
+            color: transparent;
+        }
+        .salsa-chip.selected .salsa-chip-check { background: var(--orange); border-color: var(--orange); color: white; }
+        .salsa-counter {
+            text-align: center;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: var(--text-dim);
+            margin-top: 16px;
+            letter-spacing: 0.08em;
+        }
+        .salsa-counter.ok { color: var(--orange); }
+        .salsa-actions { display: flex; gap: 10px; margin-top: 16px; }
+        .salsa-btn-cancel {
+            flex: 1;
+            padding: 13px;
+            border-radius: 12px;
+            background: var(--surface3);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            font-size: 0.78rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .salsa-btn-cancel:hover { color: var(--text); border-color: rgba(255,255,255,0.15); }
+        .salsa-btn-confirm {
+            flex: 1.5;
+            padding: 13px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--orange), var(--orange-dark));
+            border: none;
+            color: white;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 800;
+            font-size: 0.78rem;
+            letter-spacing: 0.06em;
+            cursor: pointer;
+            box-shadow: 0 4px 18px var(--orange-glow);
+            transition: all 0.2s;
+        }
+        .salsa-btn-confirm:active { transform: scale(0.96); }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-6px); }
+            40% { transform: translateX(6px); }
+            60% { transform: translateX(-4px); }
+            80% { transform: translateX(4px); }
+        }
+        .salsa-chip.shake { animation: shake 0.4s ease; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-eyebrow">Menu Digital</div>
+        <div class="header-logo">DAMN MONKEY ORIGINAL.</div>
+        <div class="header-divider">
+            <div class="header-divider-line"></div>
+            <div class="header-sub">Sabor criminal en cada mordida</div>
+            <div class="header-divider-line"></div>
+        </div>
+    </header>
+    <main style="max-width:448px; margin:0 auto; padding:16px;">
+        <div class="card">
+            <div class="card-header">
+                <div class="card-header-dot"></div>
+                <div class="card-title">Como prefieres tu pedido?</div>
+            </div>
+            <div style="padding:16px;">
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:16px;">
+                    <button onclick="setMetodo('domicilio')" id="btn-domicilio" class="opcion-entrega active">
+                        <div class="icon-circle">&#128757;</div>
+                        <div class="opcion-label">A domicilio</div>
+                    </button>
+                    <button onclick="setMetodo('retiro')" id="btn-retiro" class="opcion-entrega">
+                        <div class="icon-circle">&#127978;</div>
+                        <div class="opcion-label">Retiro en local</div>
+                    </button>
+                    <button onclick="setMetodo('delivery_propio')" id="btn-delivery-propio" class="opcion-entrega">
+                        <div class="icon-circle">&#128230;</div>
+                        <div class="opcion-label">Yo pido mi delivery</div>
+                    </button>
+                </div>
+                <div id="seccion-mapa">
+                    <div id="map"></div>
+                    <button onclick="obtenerUbicacion()" class="btn-ubicacion">Usar mi ubicacion actual</button>
+                    <div id="envio-status" style="color:var(--text-muted); background:var(--surface2); border:1px solid var(--border);">Selecciona tu ubicacion en el mapa</div>
+                    <div id="fuera-cobertura-accion" class="hidden">
+                        <div class="fuera-cobertura-box">
+                            <div class="fuera-cobertura-label">Pero puedes coordinar tu propio delivery a traves de Uber Flash o InDriver</div>
+                            <button onclick="setMetodo('delivery_propio')" class="btn-switch-delivery">&#128230; Ver opciones de delivery</button>
+                        </div>
+                    </div>
+                </div>
+                <div id="seccion-retiro" class="info-box retiro hidden">
+                    <p style="color:var(--orange); font-family:'Montserrat',sans-serif; font-weight:800; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.12em; margin-bottom:8px;">Punto de retiro</p>
+                    <p style="color:var(--text); font-family:'Montserrat',sans-serif; font-weight:700; font-size:0.88rem; text-transform:uppercase; line-height:1.4;">Lizardo Garcia y Alejandro Galarza</p>
+                    <p style="color:var(--text-muted); font-size:0.72rem; margin-top:5px; font-style:italic;">Conjunto Albazul 2</p>
+                </div>
+                <div id="seccion-delivery-propio" class="info-box delivery hidden">
+                    <p style="color:#a78bfa; font-family:'Montserrat',sans-serif; font-weight:800; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.12em; margin-bottom:8px;">Yo pido mi delivery</p>
+                    <p style="color:var(--text); font-family:'Montserrat',sans-serif; font-weight:600; font-size:0.82rem; line-height:1.5;">Coordina la entrega directamente con tu repartidor a traves de <strong style="color:#a78bfa;">Uber Flash</strong> , <strong style="color:#a78bfa;">InDriver</strong> o <strong style="color:#a78bfa;">Tu Repartidor de Confiansa</strong>.</p>
+                    <p style="color:var(--text-muted); font-size:0.70rem; margin-top:6px;">Pago unicamente por Transferencia.</p>
+                    <div style="border-top:1px solid rgba(139,92,246,0.15); margin:14px 0 10px; position:relative;">
+                        <span style="position:absolute; top:-8px; left:50%; transform:translateX(-50%); background:rgba(139,92,246,0.08); padding:0 10px; font-family:'Montserrat',sans-serif; font-size:0.58rem; font-weight:700; color:#9ca3af; letter-spacing:0.15em; text-transform:uppercase;">O pidenos por</span>
+                    </div>
+                    <div class="app-delivery-grid">
+                        <a href="https://www.rappi.com.ec/restaurantes/46088-danm-monkey" target="_blank" rel="noopener" class="app-delivery-btn btn-rappi"><div class="app-btn-icon rappi-icon">R</div>Rappi</a>
+                        <a href="https://www.pedidosya.com.ec/restaurantes/quito/danm-monkey-0a943789-2073-4386-ab67-2de103199ba3-menu" target="_blank" rel="noopener" class="app-delivery-btn btn-pedidosya"><div class="app-btn-icon pedidosya-icon">P</div>PedidosYa</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="contenedor-menu"></div>
+    </main>
+    <div class="carrito-overlay" id="carrito-overlay" onclick="cerrarCarrito()"></div>
+    <input type="file" id="input-comprobante" accept="image/*" onchange="procesarComprobante(this)">
+    <div id="panel-carrito">
+        <div class="panel-header">
+            <div><div class="panel-title">Tu Pedido</div><div class="panel-subtitle">Revisa y confirma</div></div>
+            <button onclick="cerrarCarrito()" class="btn-cerrar">&#10005;</button>
+        </div>
+        <div id="lista-carrito" style="padding:14px 16px 0;"></div>
+        <div id="seccion-pago-carrito" style="padding:0 16px 10px;">
+            <div class="seccion-label">Metodo de pago</div>
+            <div id="opciones-pago-carrito" style="display:flex; gap:10px; flex-wrap:wrap;"></div>
+            <div id="detalle-pago-carrito"></div>
+        </div>
+        <div id="resumen-carrito"></div>
+        <div style="padding:0 16px 28px;">
+            <button id="btn-whatsapp" onclick="enviarWhatsApp()" class="btn-pedir">PEDIR AHORA POR WHATSAPP</button>
+        </div>
+    </div>
+    <div id="carrito-bar" class="hidden">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="position:relative; cursor:pointer;" onclick="abrirCarrito()">
+                <div id="label-envio">Envio: --</div>
+                <div id="total-precio">$0.00</div>
+                <div id="carrito-count" class="carrito-badge">0</div>
+            </div>
+            <button onclick="abrirCarrito()" class="btn-ver-carrito">VER CARRITO</button>
+        </div>
+    </div>
+    <div class="salsa-overlay" id="salsa-overlay" onclick="if(event.target===this)cerrarSalsaPicker()">
+        <div class="salsa-panel">
+            <div class="salsa-header">
+                <div class="salsa-title">ELIGE TUS SALSAS</div>
+                <div class="salsa-subtitle">Selecciona exactamente 2</div>
+                <div class="salsa-producto-name" id="salsa-producto-nombre"></div>
+            </div>
+            <div class="salsa-options" id="salsa-options"></div>
+            <div class="salsa-counter" id="salsa-counter">0 / 2 seleccionadas</div>
+            <div class="salsa-actions">
+                <button onclick="cerrarSalsaPicker()" class="salsa-btn-cancel">Cancelar</button>
+                <button onclick="confirmarSalsas()" id="btn-confirmar-salsa" class="salsa-btn-confirm btn-disabled">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var LOCAL_COORDS = [-0.2660338701466934, -78.50071673109036];
+        var WHATSAPP_NUMBER = '593983730006';
+
+        var PRODUCTOS = [
+            { id: 'p1', visible: true, categoria: 'ALITAS', nombre: "Papi-Alita Completa", precio: 2.25, descuento: 11.56, descripcion: "Alita + Papas + Salsas (BBQ y Miel Mostaza) + Cola de 300ml GRATIS", imagen: "https://i.postimg.cc/y8pkYZz5/alitas-2-presas.jpg", llevaSalsa: true },
+            { id: 'p2', visible: true, categoria: 'ALITAS', nombre: "Combo 6 Alitas", precio: 4.10, descuento: 11.52, descripcion: "6 Alitas + Papas + Salsas (BBQ y Miel Mostaza) + Cola de 300ml GRATIS", imagen: "https://i.postimg.cc/wTGp1c7h/6-alitas.jpg", llevaSalsa: true },
+            { id: 'p3', visible: true, categoria: 'ALITAS', nombre: "Combo 10 Alitas", precio: 7.99, descuento: 0, descripcion: "10 Alitas + Papas Fritas + Salsas (BBQ y Miel Mostaza) + Cola Personal 300ml GRATIS", imagen: "https://i.postimg.cc/hj3PrF2z/10-alita-nue.jpg", llevaSalsa: true },
+            { id: 'p4', visible: true, categoria: 'PROMOCIONES (Sujeto a disponibilidad de Stock)', nombre: "Monkey King Gloton", precio: 9.99, descuento: 20, descripcion: "20 Alitas + Papas Fritas + Salsas (BBQ y Miel Mostaza) + Cola Personal 300ml GRATIS", imagen: "https://i.postimg.cc/J07LkpNb/20ALITAS.jpg", llevaSalsa: true },
+            { id: 'p5', visible: true, categoria: 'BEBIDAS', nombre: "PEPSI PERSONAL 300ml", precio: 0.50, descuento: 0, descripcion: "Cola Negra Personal 300ml", imagen: "https://i.postimg.cc/W42znwwM/cola-n-pe.jpg", llevaSalsa: false },
+            { id: 'p6', visible: true, categoria: 'BEBIDAS', nombre: "COLA PEPSI 1L", precio: 0.75, descuento: 0, descripcion: "Cola Negra 1L", imagen: "https://i.postimg.cc/G2h7PVf4/pepsi-1L.jpg", llevaSalsa: false },
+            { id: 'p7', visible: true, categoria: 'BEBIDAS', nombre: "COLA 7UP 300ML", precio: 0.50, descuento: 0, descripcion: "Cola Transparente de 300ml", imagen: "https://i.postimg.cc/vTdZ47Tf/300-transpa.jpg", llevaSalsa: false },
+            { id: 'p8', visible: true, categoria: 'BEBIDAS', nombre: "COLA 7UP 1L", precio: 0.75, descuento: 0, descripcion: "Cola Transparente 1L", imagen: "https://i.postimg.cc/T1CvTnDX/7up-l.jpg", llevaSalsa: false },
+            { id: 'p9', visible: true, categoria: 'COMPLEMENTOS', nombre: "EXTRA MIEL MOSTAZA", precio: 0.50, descuento: 0, descripcion: "Salsa Miel Mostaza Receta de la Casa", imagen: "https://i.postimg.cc/Y0g837pB/miel-mos.jpg", llevaSalsa: false },
+            { id: 'p10', visible: true, categoria: 'COMPLEMENTOS', nombre: "EXTRA BBQ", precio: 0.50, descuento: 0, descripcion: "Salsa Artesanal con un Toque de Ahumado", imagen: "https://i.postimg.cc/xdJmHRfN/bbq-ahu.jpg", llevaSalsa: false },
+            { id: 'p11', visible: true, categoria: 'COMPLEMENTOS', nombre: "PORCION DE PAPAS MONKEY GRANDE", precio: 1.23, descuento: 0, descripcion: "Porcion Grande de Papas", imagen: "https://i.postimg.cc/Vv6mr7wp/POR-PAPA.jpg", llevaSalsa: false },
+            { id: 'p12', visible: true, categoria: 'ALITAS', nombre: "Monkey King Gloton", precio: 9.99, descuento: 0, descripcion: "20 Alitas + Papas Fritas + Salsas (BBQ y Miel Mostaza) + Cola Personal 300ml", imagen: "https://i.postimg.cc/J07LkpNb/20ALITAS.jpg", llevaSalsa: true },
+            { id: 'p13', visible: true, categoria: 'BEBIDAS', nombre: "FUZE TEA PERSONAL 300ml", precio: 0.60, descuento: 0, descripcion: "El toque Natural para tu Comida", imagen: "https://i.postimg.cc/BZKXgbGZ/fuxe.jpg", llevaSalsa: false },
+            { id: 'p14', visible: true, categoria: 'ALITAS', nombre: "Mega Familiar", precio: 15.99, descuento: 6.25, descripcion: "30 Alitas + Papa Familiar + Salsas (BBQ y Miel Mostaza) + Cola de 1L GRATIS", imagen: "https://i.postimg.cc/J07LkpNb/20ALITAS.jpg", llevaSalsa: true },
+            { id: 'p15', visible: true, categoria: 'COMPLEMENTOS', nombre: "EXTRA SALSA MARACUYA", precio: 0.50, descuento: 0, descripcion: "Salsa Artesanal Sabor a Maracuya", imagen: "https://i.postimg.cc/zvNgv24H/salsa-maracyu.jpg", llevaSalsa: false }
+        ];
+
+        var SALSAS = [
+            { nombre: 'BBQ Ahumada', emoji: '\uD83D\uDD25' },
+            { nombre: 'Miel Mostaza', emoji: '\uD83C\uDF1F' },
+            { nombre: 'Maracuya', emoji: '\uD83C\uDF4B' }
+        ];
+
+        function precioFinal(p) {
+            if (!p.descuento || p.descuento <= 0) return p.precio;
+            return parseFloat((p.precio * (1 - p.descuento / 100)).toFixed(2));
+        }
+
+        function esAlita(producto) {
+            return producto.llevaSalsa === true;
+        }
+
+        function getSalsaEmoji(nombre) {
+            var s = SALSAS.find(function(x) { return x.nombre === nombre; });
+            return s ? s.emoji : '';
+        }
+
+        function makeKey(productoId, salsas) {
+            if (!salsas || salsas.length === 0) return productoId;
+            return productoId + '|' + salsas.slice().sort().join(',');
+        }
+
+        function getCantidad(productoId) {
+            var total = 0;
+            Object.keys(carrito).forEach(function(key) {
+                if (carrito[key].productoId === productoId) total += carrito[key].cantidad;
+            });
+            return total;
+        }
+
+        function getSalsasItem(productoId) {
+            var keys = Object.keys(carrito).filter(function(key) { return carrito[key].productoId === productoId; });
+            if (keys.length === 1) return carrito[keys[0]].salsas || [];
+            return [];
+        }
+
+        var ZONAS_ENVIO = {"type":"FeatureCollection","features":[{"type":"Feature","properties":{"Precio":0.60,"nombre":"Zona 1"},"geometry":{"type":"Polygon","coordinates":[[[-78.495306,-0.258094],[-78.497350,-0.257534],[-78.499792,-0.260332],[-78.501717,-0.264135],[-78.503005,-0.265210],[-78.503057,-0.273833],[-78.499363,-0.274835],[-78.496614,-0.267495],[-78.495306,-0.258094]]]}},{"type":"Feature","properties":{"Precio":0.80,"nombre":"Zona 2"},"geometry":{"type":"Polygon","coordinates":[[[-78.498454,-0.272664],[-78.499247,-0.274984],[-78.503061,-0.273934],[-78.503349,-0.276611],[-78.500844,-0.280324],[-78.496744,-0.276669],[-78.495759,-0.274271],[-78.498454,-0.272664]]]}},{"type":"Feature","properties":{"Precio":0.82,"nombre":"Zona 3"},"geometry":{"type":"Polygon","coordinates":[[[-78.496450,-0.256412],[-78.497143,-0.257529],[-78.495195,-0.258083],[-78.495804,-0.262126],[-78.494503,-0.263317],[-78.493035,-0.261665],[-78.494539,-0.258867],[-78.493413,-0.257224],[-78.495066,-0.256403],[-78.496450,-0.256412]]]}},{"type":"Feature","properties":{"Precio":0.90,"nombre":"Zona 4"},"geometry":{"type":"Polygon","coordinates":[[[-78.485325,-0.258668],[-78.484086,-0.254595],[-78.490144,-0.257959],[-78.493192,-0.257137],[-78.494356,-0.258895],[-78.485325,-0.258668]]]}},{"type":"Feature","properties":{"Precio":2.00,"nombre":"Zona 5"},"geometry":{"type":"Polygon","coordinates":[[[-78.483858,-0.253950],[-78.482783,-0.251496],[-78.483365,-0.249384],[-78.486489,-0.248676],[-78.487943,-0.252293],[-78.483858,-0.253950]]]}},{"type":"Feature","properties":{"Precio":1.40,"nombre":"Zona 6"},"geometry":{"type":"Polygon","coordinates":[[[-78.494899,-0.256401],[-78.490134,-0.257822],[-78.484121,-0.254582],[-78.483861,-0.254044],[-78.488054,-0.252260],[-78.486911,-0.249348],[-78.490203,-0.248915],[-78.494397,-0.250388],[-78.494899,-0.256401]]]}},{"type":"Feature","properties":{"Precio":1.36,"nombre":"Zona 7"},"geometry":{"type":"Polygon","coordinates":[[[-78.494965,-0.256274],[-78.494495,-0.250310],[-78.491566,-0.248921],[-78.496632,-0.245244],[-78.498898,-0.252726],[-78.496611,-0.256360],[-78.494965,-0.256274]]]}},{"type":"Feature","properties":{"Precio":1.92,"nombre":"Zona 8"},"geometry":{"type":"Polygon","coordinates":[[[-78.500202,-0.247945],[-78.497726,-0.248679],[-78.496658,-0.245132],[-78.492557,-0.248033],[-78.489923,-0.243984],[-78.490905,-0.241735],[-78.493849,-0.240058],[-78.498988,-0.241325],[-78.500202,-0.247945]]]}},{"type":"Feature","properties":{"Precio":2.00,"nombre":"Zona 9"},"geometry":{"type":"Polygon","coordinates":[[[-78.492480,-0.248089],[-78.491491,-0.248867],[-78.490239,-0.248801],[-78.486850,-0.249236],[-78.486521,-0.248577],[-78.483356,-0.249315],[-78.485176,-0.245597],[-78.485637,-0.242262],[-78.485097,-0.239150],[-78.489540,-0.237621],[-78.493706,-0.240007],[-78.490885,-0.241576],[-78.489856,-0.243989],[-78.492480,-0.248089]]]}},{"type":"Feature","properties":{"Precio":1.84,"nombre":"Zona 10"},"geometry":{"type":"Polygon","coordinates":[[[-78.494240,-0.259052],[-78.492862,-0.261718],[-78.494388,-0.263501],[-78.495786,-0.262393],[-78.496348,-0.266586],[-78.494436,-0.268514],[-78.490066,-0.270843],[-78.487769,-0.269751],[-78.486821,-0.267839],[-78.487463,-0.264337],[-78.484009,-0.265750],[-78.479896,-0.266329],[-78.481383,-0.261362],[-78.484539,-0.262846],[-78.491048,-0.259118],[-78.494240,-0.259052]]]}},{"type":"Feature","properties":{"Precio":1.97,"nombre":"Zona 11"},"geometry":{"type":"Polygon","coordinates":[[[-78.490571,-0.284894],[-78.488755,-0.282331],[-78.492173,-0.279576],[-78.496722,-0.276735],[-78.500759,-0.280366],[-78.503472,-0.288205],[-78.490571,-0.284894]]]}},{"type":"Feature","properties":{"Precio":1.91,"nombre":"Zona 12"},"geometry":{"type":"Polygon","coordinates":[[[-78.498311,-0.272594],[-78.495536,-0.274184],[-78.496490,-0.276642],[-78.488656,-0.282250],[-78.489870,-0.276815],[-78.489638,-0.271091],[-78.493628,-0.269357],[-78.496259,-0.267015],[-78.498311,-0.272594]]]}}]};
+
+        var carrito = {};
+        var metodo = 'domicilio';
+        var envioCosto = 0;
+        var zonaEncontrada = false;
+        var map = null, userMarker = null;
+        var metodoPago = 'transferencia';
+        var subMetodoTransferencia = 'pichincha';
+        var montoPagoEfectivo = '';
+        var comprobanteNombre = '';
+        var comprobanteDataURL = '';
+
+        var salsaPickerState = { productoId: null, carritoKey: null, seleccionadas: [], modo: 'nuevo' };
+
+        function mostrarToast(mensaje) {
+            var existente = document.getElementById('dm-toast');
+            if (existente) existente.remove();
+            var toast = document.createElement('div');
+            toast.id = 'dm-toast';
+            toast.className = 'dm-toast';
+            toast.innerHTML = '<span style="font-size:16px;flex-shrink:0;">&#9888;&#65039;</span><span>' + mensaje + '</span>';
+            document.body.appendChild(toast);
+            requestAnimationFrame(function() { requestAnimationFrame(function() { toast.classList.add('visible'); }); });
+            setTimeout(function() { toast.classList.remove('visible'); setTimeout(function() { if (toast.parentNode) toast.remove(); }, 300); }, 3000);
+        }
+
+        function copiarDato(texto, btnId) {
+            navigator.clipboard.writeText(texto).then(function() {
+                var btn = document.getElementById(btnId);
+                if (!btn) return;
+                btn.classList.add('copiado');
+                btn.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Copiado';
+                setTimeout(function() { btn.classList.remove('copiado'); btn.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copiar'; }, 2000);
+            }).catch(function() {
+                var el = document.createElement('textarea'); el.value = texto; el.style.position = 'fixed'; el.style.opacity = '0'; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el);
+                var btn = document.getElementById(btnId);
+                if (btn) { btn.classList.add('copiado'); btn.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Copiado'; setTimeout(function() { btn.classList.remove('copiado'); btn.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copiar'; }, 2000); }
+            });
+        }
+
+        var COPY_ICON = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+        var WA_ICON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>';
+        var CHECK_ICON = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>';
+
+        function calcularSubtotal() {
+            var subtotal = 0;
+            Object.keys(carrito).forEach(function(key) {
+                var entry = carrito[key];
+                var p = PRODUCTOS.find(function(x) { return x.id === entry.productoId; });
+                if (p) subtotal += precioFinal(p) * entry.cantidad;
+            });
+            return subtotal;
+        }
+
+        function calcularTotalConRecargo(subtotal) {
+            var base = metodo === 'domicilio' && zonaEncontrada ? subtotal + envioCosto : subtotal;
+            if (metodoPago === 'transferencia' && subMetodoTransferencia === 'payphone') base = parseFloat((base * 1.07).toFixed(2));
+            return base;
+        }
+
+        function abrirSalsaPicker(productoId, modo, carritoKey) {
+            var producto = PRODUCTOS.find(function(p) { return p.id === productoId; });
+            if (!producto) return;
+            salsaPickerState.productoId = productoId;
+            salsaPickerState.carritoKey = carritoKey || null;
+            salsaPickerState.modo = modo || 'nuevo';
+            if (modo === 'editar' && carritoKey && carrito[carritoKey]) {
+                salsaPickerState.seleccionadas = carrito[carritoKey].salsas.slice();
+            } else {
+                salsaPickerState.seleccionadas = [];
+            }
+            document.getElementById('salsa-producto-nombre').textContent = producto.nombre;
+            renderizarSalsaOpciones();
+            actualizarSalsaCounter();
+            document.getElementById('salsa-overlay').classList.add('visible');
+        }
+
+        function cerrarSalsaPicker() {
+            document.getElementById('salsa-overlay').classList.remove('visible');
+            salsaPickerState.productoId = null;
+            salsaPickerState.carritoKey = null;
+            salsaPickerState.seleccionadas = [];
+            salsaPickerState.modo = 'nuevo';
+        }
+
+        function renderizarSalsaOpciones() {
+            var container = document.getElementById('salsa-options');
+            container.innerHTML = '';
+            SALSAS.forEach(function(salsa, idx) {
+                var isSelected = salsaPickerState.seleccionadas.indexOf(salsa.nombre) !== -1;
+                var isDisabled = !isSelected && salsaPickerState.seleccionadas.length >= 2;
+                var chip = document.createElement('div');
+                chip.className = 'salsa-chip' + (isSelected ? ' selected' : '') + (isDisabled ? ' disabled' : '');
+                chip.dataset.idx = idx;
+                chip.onclick = function() { toggleSalsa(idx); };
+                chip.innerHTML = '<div class="salsa-chip-icon">' + salsa.emoji + '</div><div class="salsa-chip-name">' + salsa.nombre + '</div><div class="salsa-chip-check">' + (isSelected ? CHECK_ICON : '') + '</div>';
+                container.appendChild(chip);
+            });
+        }
+
+        function toggleSalsa(idx) {
+            var nombre = SALSAS[idx].nombre;
+            var pos = salsaPickerState.seleccionadas.indexOf(nombre);
+            if (pos !== -1) { salsaPickerState.seleccionadas.splice(pos, 1); }
+            else {
+                if (salsaPickerState.seleccionadas.length >= 2) {
+                    var chip = document.querySelector('.salsa-chip[data-idx="' + idx + '"]');
+                    if (chip) { chip.classList.add('shake'); setTimeout(function() { chip.classList.remove('shake'); }, 400); }
+                    return;
+                }
+                salsaPickerState.seleccionadas.push(nombre);
+            }
+            renderizarSalsaOpciones();
+            actualizarSalsaCounter();
+        }
+
+        function actualizarSalsaCounter() {
+            var count = salsaPickerState.seleccionadas.length;
+            var counter = document.getElementById('salsa-counter');
+            var btnConfirm = document.getElementById('btn-confirmar-salsa');
+            if (count === 2) { counter.textContent = '2 / 2 seleccionadas'; counter.className = 'salsa-counter ok'; btnConfirm.classList.remove('btn-disabled'); }
+            else { counter.textContent = count + ' / 2 seleccionadas'; counter.className = 'salsa-counter'; btnConfirm.classList.add('btn-disabled'); }
+        }
+
+        function confirmarSalsas() {
+            if (salsaPickerState.seleccionadas.length !== 2) return;
+            var productoId = salsaPickerState.productoId;
+            var newKey = makeKey(productoId, salsaPickerState.seleccionadas);
+            if (salsaPickerState.modo === 'nuevo') {
+                if (carrito[newKey]) { carrito[newKey].cantidad++; }
+                else { carrito[newKey] = { productoId: productoId, cantidad: 1, salsas: salsaPickerState.seleccionadas.slice() }; }
+            } else if (salsaPickerState.modo === 'editar' && salsaPickerState.carritoKey) {
+                var oldEntry = carrito[salsaPickerState.carritoKey];
+                if (oldEntry) {
+                    delete carrito[salsaPickerState.carritoKey];
+                    if (carrito[newKey]) { carrito[newKey].cantidad += oldEntry.cantidad; }
+                    else { carrito[newKey] = { productoId: productoId, cantidad: oldEntry.cantidad, salsas: salsaPickerState.seleccionadas.slice() }; }
+                }
+            }
+            cerrarSalsaPicker();
+            renderizarMenu();
+            actualizarBarraCarrito();
+            renderizarPanelCarrito();
+        }
+
+        function generarURLWhatsApp() {
+            var subtotal = 0, ahorroTotal = 0;
+            var texto = '*NUEVO PEDIDO - DAMN MONKEY*%0A%0A';
+            Object.keys(carrito).forEach(function(key) {
+                var entry = carrito[key];
+                var p = PRODUCTOS.find(function(x) { return x.id === entry.productoId; });
+                if (!p) return;
+                var cant = entry.cantidad;
+                var pFinal = precioFinal(p);
+                var subtotalItem = pFinal * cant;
+                var tieneDescuento = p.descuento && p.descuento > 0;
+                var ahorro = tieneDescuento ? (p.precio - pFinal) * cant : 0;
+                texto += '- ' + cant + 'x ' + p.nombre;
+                if (tieneDescuento) texto += ' (-' + p.descuento + '%)';
+                if (esAlita(p) && entry.salsas && entry.salsas.length > 0) texto += '%0A  Salsas: ' + entry.salsas.join(' + ');
+                texto += ' = $' + subtotalItem.toFixed(2) + '%0A';
+                subtotal += subtotalItem;
+                ahorroTotal += ahorro;
+            });
+            texto += '%0A*--- RESUMEN ---*%0A';
+            texto += '*Subtotal:* $' + subtotal.toFixed(2) + '%0A';
+            if (ahorroTotal > 0) texto += '*Ahorro descuentos:* -$' + ahorroTotal.toFixed(2) + '%0A';
+            if (metodo === 'domicilio') {
+                texto += '*Envio:* $' + envioCosto.toFixed(2) + '%0A*Metodo:* Domicilio%0A';
+                if (userMarker) { var l = userMarker.getLatLng(); texto += '*Ubicacion:* https://www.google.com/maps?q=' + l.lat + ',' + l.lng + '%0A'; }
+            } else if (metodo === 'retiro') { texto += '*Metodo:* Retiro en local%0A'; }
+            else { texto += '*Metodo:* Yo pido mi delivery%0A'; }
+            var baseTotal = metodo === 'domicilio' && zonaEncontrada ? subtotal + envioCosto : subtotal;
+            if (metodoPago === 'efectivo') {
+                texto += '*Pago:* Efectivo%0A';
+                var monto = parseFloat(montoPagoEfectivo) || 0;
+                if (monto > 0) { var cambio = monto - baseTotal; texto += '*Paga con:* $' + monto.toFixed(2) + '%0A*Cambio:* $' + (cambio >= 0 ? cambio.toFixed(2) : '0.00 (monto insuficiente)') + '%0A'; }
+                texto += '%0A*TOTAL A PAGAR: $' + baseTotal.toFixed(2) + '*';
+            } else {
+                var esPayPhone = subMetodoTransferencia === 'payphone';
+                var recargoPayPhone = esPayPhone ? parseFloat((baseTotal * 0.07).toFixed(2)) : 0;
+                var totalFinal = parseFloat((baseTotal + recargoPayPhone).toFixed(2));
+                if (subMetodoTransferencia === 'pichincha') { texto += '*Pago:* Transferencia - Banco Pichincha / De Una%0A*Cuenta Ahorros:* Alexander Viera - 2204604595%0A*De Una (cel):* 0963916906%0A'; }
+                else if (subMetodoTransferencia === 'guayaquil') { texto += '*Pago:* Transferencia - Banco Guayaquil / Paigo%0A*Cuenta Ahorros:* Alexander Viera - 0056926092%0A*Paigo (cel):* 0963916906%0A'; }
+                else if (esPayPhone) { texto += '*Pago:* PayPhone%0A*Recargo PayPhone (7%):* +$' + recargoPayPhone.toFixed(2) + '%0A*Link de pago:* https://ppls.me/GXW4qmLZEiEhCDyM5Nutw%0A'; }
+                texto += '%0A*TOTAL A PAGAR: $' + totalFinal.toFixed(2) + '*';
+                if (esPayPhone) texto += '%0A_(incluye recargo del 7% por PayPhone)_';
+            }
+            return 'https://wa.me/' + WHATSAPP_NUMBER + '?text=' + texto;
+        }
+
+        function renderizarPagoCarrito() {
+            var cont = document.getElementById('opciones-pago-carrito');
+            if (!cont) return;
+            cont.innerHTML = '';
+            var opciones = metodo === 'retiro' ? [{ key: 'efectivo', label: 'Efectivo' }, { key: 'transferencia', label: 'Transferencia' }] : [{ key: 'transferencia', label: 'Transferencia' }];
+            if (!opciones.find(function(o) { return o.key === metodoPago; })) metodoPago = opciones[0].key;
+            opciones.forEach(function(op) {
+                var sel = metodoPago === op.key ? 'selected' : '';
+                var btn = document.createElement('button');
+                btn.className = 'pago-btn ' + sel;
+                btn.onclick = function() { seleccionarPago(op.key); };
+                btn.innerHTML = (op.key === 'efectivo' ? '&#128181; ' : '&#128196; ') + op.label;
+                cont.appendChild(btn);
+            });
+            renderizarDetallesPago();
+        }
+
+        function renderizarDetallesPago() {
+            var det = document.getElementById('detalle-pago-carrito');
+            if (!det) return;
+            det.innerHTML = '';
+            if (metodoPago === 'efectivo') {
+                var subtotal = calcularSubtotal();
+                var totalActual = metodo === 'domicilio' && zonaEncontrada ? subtotal + envioCosto : subtotal;
+                var monto = parseFloat(montoPagoEfectivo) || 0;
+                var cambio = monto > 0 ? monto - totalActual : null;
+                det.innerHTML = '<div class="efectivo-box"><div class="efectivo-label">Pago en efectivo</div><input type="number" class="efectivo-input" id="input-monto-efectivo" placeholder="Con cuanto va a pagar? Ej: 10.00" step="0.01" min="0" value="' + montoPagoEfectivo + '" oninput="onCambioMontoEfectivo(this.value)">' + (monto > 0 ? '<div class="efectivo-cambio-row" id="efectivo-cambio-row"><span class="efectivo-cambio-label">Su cambio sera:</span><span class="efectivo-cambio-valor" style="color:' + (cambio >= 0 ? '#4ade80' : '#f87171') + ';">' + (cambio >= 0 ? '$' + cambio.toFixed(2) : 'Monto insuficiente') + '</span></div>' : '') + '</div>';
+            }
+            if (metodoPago === 'transferencia') {
+                var subOpciones = [{ key: 'pichincha', label: 'Pichincha / De Una', color: '#f59e0b', initials: 'BP' }, { key: 'guayaquil', label: 'Guayaquil / Paigo', color: '#3b82f6', initials: 'BG' }, { key: 'payphone', label: 'PayPhone', color: '#10b981', initials: 'PP' }];
+                var subGrid = document.createElement('div');
+                subGrid.style.cssText = 'display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:12px;';
+                subOpciones.forEach(function(s) {
+                    var sel = subMetodoTransferencia === s.key ? 'selected' : '';
+                    var btn = document.createElement('button');
+                    btn.className = 'sub-pago-btn ' + sel;
+                    btn.style.justifyContent = 'center';
+                    btn.onclick = function() { seleccionarSubTransferencia(s.key); };
+                    btn.innerHTML = '<div class="sub-icon" style="background:' + s.color + '1a;color:' + s.color + ';border:1px solid ' + s.color + '55;">' + s.initials + '</div><span style="font-size:0.6rem;">' + s.label + '</span>';
+                    subGrid.appendChild(btn);
+                });
+                det.appendChild(subGrid);
+                var infoBox = document.createElement('div');
+                if (subMetodoTransferencia === 'pichincha') {
+                    infoBox.className = 'transfer-info-box';
+                    infoBox.innerHTML = '<div class="transfer-info-label">Banco Pichincha / De Una</div><div class="transfer-info-row"><span class="transfer-info-key">Tipo de cuenta</span><span class="transfer-info-val">Ahorros</span></div><div class="transfer-info-row"><span class="transfer-info-key">Titular</span><span class="transfer-info-val">Alexander Viera</span></div><div class="copy-row"><div class="copy-row-left"><span class="transfer-info-key">N. Cuenta</span><span class="transfer-info-val">2204604595</span></div><button id="btn-copy-pic-cuenta" class="btn-copiar" onclick="copiarDato(\'2204604595\', \'btn-copy-pic-cuenta\')">' + COPY_ICON + ' Copiar</button></div><div style="border-top:1px solid rgba(96,165,250,0.15);margin:10px 0 8px;"></div><div class="copy-row"><div class="copy-row-left"><span class="transfer-info-key">De Una (celular)</span><span class="transfer-info-val">0963916906</span></div><button id="btn-copy-pic-cel" class="btn-copiar" onclick="copiarDato(\'0963916906\', \'btn-copy-pic-cel\')">' + COPY_ICON + ' Copiar</button></div>';
+                } else if (subMetodoTransferencia === 'guayaquil') {
+                    infoBox.className = 'transfer-info-box';
+                    infoBox.innerHTML = '<div class="transfer-info-label">Banco Guayaquil / Paigo</div><div class="transfer-info-row"><span class="transfer-info-key">Tipo de cuenta</span><span class="transfer-info-val">Ahorros</span></div><div class="transfer-info-row"><span class="transfer-info-key">Titular</span><span class="transfer-info-val">Alexander Viera</span></div><div class="copy-row"><div class="copy-row-left"><span class="transfer-info-key">N. Cuenta</span><span class="transfer-info-val">0056926092</span></div><button id="btn-copy-gye-cuenta" class="btn-copiar" onclick="copiarDato(\'0056926092\', \'btn-copy-gye-cuenta\')">' + COPY_ICON + ' Copiar</button></div><div style="border-top:1px solid rgba(96,165,250,0.15);margin:10px 0 8px;"></div><div class="copy-row"><div class="copy-row-left"><span class="transfer-info-key">Paigo (celular)</span><span class="transfer-info-val">0963916906</span></div><button id="btn-copy-gye-cel" class="btn-copiar" onclick="copiarDato(\'0963916906\', \'btn-copy-gye-cel\')">' + COPY_ICON + ' Copiar</button></div>';
+                } else if (subMetodoTransferencia === 'payphone') {
+                    var subtotal2 = calcularSubtotal();
+                    var baseTotal2 = metodo === 'domicilio' && zonaEncontrada ? subtotal2 + envioCosto : subtotal2;
+                    var recargo = parseFloat((baseTotal2 * 0.07).toFixed(2));
+                    var totalConRecargo = parseFloat((baseTotal2 + recargo).toFixed(2));
+                    infoBox.className = 'transfer-info-box payphone';
+                    infoBox.innerHTML = '<div class="transfer-info-label">PayPhone</div><div class="payphone-surcharge">+7% por uso de aplicacion &mdash; Recargo: $' + recargo.toFixed(2) + '</div><div class="transfer-info-row"><span class="transfer-info-key">Total a pagar</span><span class="transfer-info-val" style="color:#34d399;font-size:1rem;">$' + totalConRecargo.toFixed(2) + '</span></div><a href="https://ppls.me/GXW4qmLZEiEhCDyM5Nutw" target="_blank" rel="noopener" class="payphone-link">Pagar con PayPhone</a>';
+                }
+                det.appendChild(infoBox);
+                if (subMetodoTransferencia !== 'payphone') {
+                    var msgDiv = document.createElement('div');
+                    msgDiv.className = 'casi-listo-msg';
+                    msgDiv.style.cursor = 'default';
+                    msgDiv.innerHTML = '<div class="casi-listo-icon">' + WA_ICON + '</div><div class="casi-listo-text"><div class="casi-listo-title">PASO IMPORTANTE!</div><div class="casi-listo-body">Copia los datos de arriba para tu transferencia. Recuerda enviar tu comprobante usando el boton <b>"PEDIR AHORA POR WHATSAPP"</b> al final para confirmar tu orden.</div></div>';
+                    det.appendChild(msgDiv);
+                }
+            }
+        }
+
+        function onCambioMontoEfectivo(val) {
+            montoPagoEfectivo = val;
+            var cambioRow = document.getElementById('efectivo-cambio-row');
+            var subtotal = calcularSubtotal();
+            var totalActual = metodo === 'domicilio' && zonaEncontrada ? subtotal + envioCosto : subtotal;
+            var monto = parseFloat(val) || 0;
+            if (monto > 0) {
+                var cambio = monto - totalActual;
+                if (!cambioRow) {
+                    var parent = document.querySelector('.efectivo-box');
+                    if (parent) {
+                        cambioRow = document.createElement('div');
+                        cambioRow.id = 'efectivo-cambio-row';
+                        cambioRow.className = 'efectivo-cambio-row';
+                        parent.appendChild(cambioRow);
+                    }
+                }
+                if (cambioRow) {
+                    cambioRow.innerHTML = '<span class="efectivo-cambio-label">Su cambio sera:</span><span class="efectivo-cambio-valor" style="color:' + (cambio >= 0 ? '#4ade80' : '#f87171') + ';">' + (cambio >= 0 ? '$' + cambio.toFixed(2) : 'Monto insuficiente') + '</span>';
+                }
+            } else {
+                if (cambioRow) cambioRow.remove();
+            }
+        }
+
+        function seleccionarSubTransferencia(key) { subMetodoTransferencia = key; comprobanteNombre = ''; comprobanteDataURL = ''; renderizarDetallesPago(); renderizarPanelCarrito(); }
+        function procesarComprobante(input) { if (!input.files || !input.files[0]) return; comprobanteNombre = input.files[0].name; var reader = new FileReader(); reader.onload = function(e) { comprobanteDataURL = e.target.result; renderizarDetallesPago(); }; reader.readAsDataURL(input.files[0]); }
+        function seleccionarPago(key) { metodoPago = key; montoPagoEfectivo = ''; comprobanteNombre = ''; comprobanteDataURL = ''; renderizarPagoCarrito(); renderizarPanelCarrito(); }
+
+        function renderizarMenu() {
+            var container = document.getElementById('contenedor-menu');
+            container.innerHTML = '';
+            var productosVisibles = PRODUCTOS.filter(function(p) { return p.visible !== false; });
+            var categorias = [];
+            productosVisibles.forEach(function(p) { if (categorias.indexOf(p.categoria) === -1) categorias.push(p.categoria); });
+            categorias.forEach(function(cat, catIndex) {
+                var catId = cat.replace(/[^a-z0-9]/gi, '_');
+                var seccion = document.createElement('div');
+                seccion.className = 'card';
+                seccion.style.animationDelay = (catIndex * 0.07) + 's';
+                seccion.innerHTML = '<div class="card-header"><div class="card-header-dot"></div><div class="card-title">' + cat + '</div></div><div id="cat-' + catId + '"></div>';
+                container.appendChild(seccion);
+                var catContainer = document.getElementById('cat-' + catId);
+                productosVisibles.filter(function(p) { return p.categoria === cat; }).forEach(function(p) {
+                    var cantidad = getCantidad(p.id);
+                    var salsas = getSalsasItem(p.id);
+                    var pFinal = precioFinal(p);
+                    var tieneDescuento = p.descuento && p.descuento > 0;
+                    var isAlita = esAlita(p);
+                    var precioHTML = tieneDescuento ? '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:5px;"><span class="precio-original">$' + p.precio.toFixed(2) + '</span><span class="precio-final">$' + pFinal.toFixed(2) + '</span><span class="badge-descuento">-' + p.descuento + '%</span></div>' : '<div class="precio-final" style="margin-top:5px;">$' + pFinal.toFixed(2) + '</div>';
+                    var salsasHTML = '';
+                    if (isAlita && cantidad > 0 && salsas.length > 0) { salsasHTML = '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px;">'; salsas.forEach(function(s) { salsasHTML += '<span class="salsa-pill-menu">' + getSalsaEmoji(s) + ' ' + s + '</span>'; }); salsasHTML += '</div>'; }
+                    var salsaNoteHTML = isAlita && cantidad === 0 ? '<div class="salsa-note">Elige 2 salsas al agregar</div>' : '';
+                    var imagenHTML = p.imagen ? '<div class="imagen-contenedor"><img src="' + p.imagen + '" class="imagen-plato" alt="' + p.nombre + '" loading="lazy"></div>' : '<div class="imagen-contenedor"><div class="imagen-placeholder">&#127829;</div></div>';
+                    var controlesHTML = '<div class="controles-producto"><button onclick="agregarAlCarrito(\'' + p.id + '\')" class="btn-control btn-plus">&#43;</button>' + (cantidad > 0 ? '<span class="cantidad-badge">' + cantidad + '</span>' : '') + (cantidad > 0 ? '<button onclick="quitarDelCarrito(\'' + p.id + '\')" class="btn-control btn-minus">&#8722;</button>' : '') + '</div>';
+                    var div = document.createElement('div');
+                    div.className = 'producto-card';
+                    div.innerHTML = imagenHTML + '<div style="flex:1;min-width:0;"><div class="nombre-producto">' + p.nombre + '</div><div class="desc-producto">' + p.descripcion + '</div>' + precioHTML + salsasHTML + salsaNoteHTML + '</div>' + controlesHTML;
+                    catContainer.appendChild(div);
+                });
+            });
+        }
+
+        function agregarAlCarrito(id) {
+            var producto = PRODUCTOS.find(function(p) { return p.id === id; });
+            if (!producto) return;
+            if (esAlita(producto)) { abrirSalsaPicker(id, 'nuevo'); return; }
+            var key = makeKey(id, []);
+            if (carrito[key]) { carrito[key].cantidad++; } else { carrito[key] = { productoId: id, cantidad: 1, salsas: [] }; }
+            renderizarMenu();
+            actualizarBarraCarrito();
+        }
+
+        function quitarDelCarrito(productoId) {
+            var targetKey = null;
+            Object.keys(carrito).forEach(function(key) { if (!targetKey && carrito[key].productoId === productoId) targetKey = key; });
+            if (targetKey) { carrito[targetKey].cantidad--; if (carrito[targetKey].cantidad === 0) delete carrito[targetKey]; }
+            renderizarMenu();
+            actualizarBarraCarrito();
+            renderizarPanelCarrito();
+        }
+
+        function quitarDelCarritoKey(carritoKey) {
+            if (carrito[carritoKey]) { carrito[carritoKey].cantidad--; if (carrito[carritoKey].cantidad === 0) delete carrito[carritoKey]; }
+            renderizarMenu();
+            actualizarBarraCarrito();
+            renderizarPanelCarrito();
+        }
+
+        function agregarDesdePanel(carritoKey) {
+            if (carrito[carritoKey]) { carrito[carritoKey].cantidad++; }
+            renderizarMenu();
+            actualizarBarraCarrito();
+            renderizarPanelCarrito();
+        }
+
+        function actualizarBarraCarrito() {
+            var totalItems = 0;
+            Object.keys(carrito).forEach(function(key) { totalItems += carrito[key].cantidad; });
+            var bar = document.getElementById('carrito-bar');
+            if (totalItems === 0) { bar.classList.add('hidden'); return; }
+            var subtotal = calcularSubtotal();
+            var entregaBloqueada = metodo === 'domicilio' && !zonaEncontrada;
+            if (entregaBloqueada) { document.getElementById('total-precio').innerText = "Ubicacion necesaria"; document.getElementById('label-envio').innerText = "Fuera de rango"; }
+            else {
+                var total = calcularTotalConRecargo(subtotal);
+                document.getElementById('total-precio').innerText = '$' + total.toFixed(2);
+                if (metodo === 'domicilio') document.getElementById('label-envio').innerText = 'Envio: $' + envioCosto.toFixed(2);
+                else if (metodo === 'retiro') document.getElementById('label-envio').innerText = "Retiro en local";
+                else document.getElementById('label-envio').innerText = "Yo pido mi delivery";
+            }
+            document.getElementById('carrito-count').innerText = totalItems;
+            bar.classList.remove('hidden');
+        }
+
+        function abrirCarrito() {
+            if (metodo === 'domicilio' && !zonaEncontrada) { mostrarToast('Primero selecciona tu ubicacion en el mapa para poder pedir a domicilio'); document.getElementById('seccion-mapa').scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+            renderizarPanelCarrito();
+            renderizarPagoCarrito();
+            document.getElementById('panel-carrito').classList.add('abierto');
+            document.getElementById('carrito-overlay').classList.add('visible');
+        }
+
+        function cerrarCarrito() {
+            document.getElementById('panel-carrito').classList.remove('abierto');
+            document.getElementById('carrito-overlay').classList.remove('visible');
+        }
+
+        function renderizarPanelCarrito() {
+            var lista = document.getElementById('lista-carrito');
+            var resumen = document.getElementById('resumen-carrito');
+            lista.innerHTML = '';
+            resumen.innerHTML = '';
+            var itemsEnCarrito = [];
+            Object.keys(carrito).forEach(function(key) {
+                var entry = carrito[key];
+                if (entry.cantidad <= 0) return;
+                var p = PRODUCTOS.find(function(x) { return x.id === entry.productoId; });
+                if (p) itemsEnCarrito.push({ key: key, producto: p, entry: entry });
+            });
+            if (itemsEnCarrito.length === 0) {
+                lista.innerHTML = '<p style="text-align:center;color:var(--text-dim);padding:30px 0;font-size:0.85rem;font-family:Montserrat,sans-serif;">Tu carrito esta vacio</p>';
+                document.getElementById('seccion-pago-carrito').style.display = 'none';
+                return;
+            }
+            document.getElementById('seccion-pago-carrito').style.display = 'block';
+            renderizarPagoCarrito();
+            var subtotal = 0, ahorroTotal = 0;
+            itemsEnCarrito.forEach(function(item) {
+                var carritoKey = item.key;
+                var p = item.producto;
+                var entry = item.entry;
+                var cant = entry.cantidad;
+                var salsas = entry.salsas || [];
+                var pFinal = precioFinal(p);
+                var subtotalItem = pFinal * cant;
+                var tieneDescuento = p.descuento && p.descuento > 0;
+                var ahorro = tieneDescuento ? (p.precio - pFinal) * cant : 0;
+                var isAlita = esAlita(p);
+                subtotal += subtotalItem;
+                ahorroTotal += ahorro;
+                var imagenHTML = p.imagen ? '<img src="' + p.imagen + '" style="width:48px;height:48px;object-fit:cover;border-radius:10px;flex-shrink:0;border:1px solid var(--border);" alt="' + p.nombre + '">' : '<div style="width:48px;height:48px;background:var(--surface3);border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px;">&#127829;</div>';
+                var salsasCartHTML = '';
+                if (isAlita && salsas.length > 0) {
+                    salsasCartHTML = '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px;align-items:center;">';
+                    salsas.forEach(function(s) { salsasCartHTML += '<span class="salsa-pill-cart">' + getSalsaEmoji(s) + ' ' + s + '</span>'; });
+                    salsasCartHTML += '<button class="btn-cambiar-salsas" onclick="abrirSalsaPicker(\'' + p.id + '\',\'editar\',\'' + carritoKey.replace(/'/g, "\\'") + '\')">cambiar</button>';
+                    salsasCartHTML += '</div>';
+                }
+                var safeKey = carritoKey.replace(/'/g, "\\'");
+                var div = document.createElement('div');
+                div.className = 'carrito-item';
+                div.innerHTML = imagenHTML + '<div style="flex:1;min-width:0;"><div style="font-family:\'Montserrat\',sans-serif;font-weight:800;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.03em;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + p.nombre + '</div>' + (tieneDescuento ? '<div style="display:flex;align-items:center;gap:6px;margin-top:3px;"><span style="font-size:0.65rem;color:var(--text-dim);text-decoration:line-through;">$' + p.precio.toFixed(2) + '</span><span style="font-size:0.78rem;font-weight:900;color:var(--orange);font-family:\'Montserrat\',sans-serif;">$' + pFinal.toFixed(2) + '</span><span class="badge-descuento">-' + p.descuento + '%</span></div>' : '<div style="font-size:0.78rem;font-weight:900;color:var(--orange);font-family:\'Montserrat\',sans-serif;margin-top:3px;">$' + pFinal.toFixed(2) + '</div>') + salsasCartHTML + '</div><div style="display:flex;align-items:center;gap:8px;background:var(--surface3);border:1px solid var(--border);border-radius:10px;padding:4px 6px;"><button onclick="quitarDelCarritoKey(\'' + safeKey + '\');" style="width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:6px;background:rgba(239,68,68,0.12);color:#ef4444;font-weight:bold;font-size:15px;border:none;cursor:pointer;">&#8722;</button><span style="font-weight:900;font-size:0.85rem;min-width:18px;text-align:center;font-family:\'Montserrat\',sans-serif;color:var(--text);">' + cant + '</span><button onclick="agregarDesdePanel(\'' + safeKey + '\');" style="width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:6px;background:linear-gradient(135deg,var(--orange),var(--orange-dark));color:white;font-weight:bold;font-size:15px;border:none;cursor:pointer;">&#43;</button></div><div style="text-align:right;flex-shrink:0;min-width:48px;"><div style="font-family:\'Montserrat\',sans-serif;font-weight:900;font-size:0.85rem;color:var(--text);">$' + subtotalItem.toFixed(2) + '</div><div style="font-size:0.65rem;color:var(--text-dim);">' + cant + ' ud.</div></div>';
+                lista.appendChild(div);
+            });
+            var envioTexto = metodo === 'domicilio' ? (zonaEncontrada ? '$' + envioCosto.toFixed(2) : 'Sin ubicacion') : (metodo === 'retiro' ? 'Retiro' : 'Delivery propio');
+            var baseTotal = metodo === 'domicilio' && zonaEncontrada ? subtotal + envioCosto : subtotal;
+            var esPayPhone = metodoPago === 'transferencia' && subMetodoTransferencia === 'payphone';
+            var recargoPayPhone = esPayPhone ? parseFloat((baseTotal * 0.07).toFixed(2)) : 0;
+            var total = parseFloat((baseTotal + recargoPayPhone).toFixed(2));
+            var pagoLabel = metodoPago === 'efectivo' ? 'Efectivo' : 'Transferencia - ' + ({ pichincha: 'Pichincha / De Una', guayaquil: 'Guayaquil / Paigo', payphone: 'PayPhone' }[subMetodoTransferencia] || 'Transferencia');
+            var resDiv = document.createElement('div');
+            resDiv.className = 'resumen-box';
+            resDiv.innerHTML = '<div class="resumen-row"><span>Subtotal productos</span><span>$' + subtotal.toFixed(2) + '</span></div>' + (ahorroTotal > 0 ? '<div class="resumen-row" style="color:#4ade80;"><span>Ahorro con descuentos</span><span style="color:#4ade80;">-$' + ahorroTotal.toFixed(2) + '</span></div>' : '') + '<div class="resumen-row"><span>' + (metodo === 'domicilio' ? 'Costo de envio' : 'Metodo') + '</span><span>' + envioTexto + '</span></div>' + (esPayPhone ? '<div class="resumen-row" style="color:#fbbf24;"><span>Recargo PayPhone (7%)</span><span style="color:#fbbf24;">+$' + recargoPayPhone.toFixed(2) + '</span></div>' : '') + '<div class="resumen-row"><span>Pago</span><span>' + pagoLabel + '</span></div><div class="resumen-total"><span class="resumen-total-label">TOTAL</span><span class="resumen-total-valor">$' + total.toFixed(2) + '</span></div>';
+            resumen.appendChild(resDiv);
+            var btnWa = document.getElementById('btn-whatsapp');
+            if (metodo === 'domicilio' && !zonaEncontrada) { btnWa.classList.add('btn-disabled'); btnWa.disabled = true; }
+            else { btnWa.classList.remove('btn-disabled'); btnWa.disabled = false; }
+        }
+
+        function initMap() {
+            map = L.map('map', { zoomControl: false }).setView(LOCAL_COORDS, 15);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; CartoDB' }).addTo(map);
+            L.marker(LOCAL_COORDS).addTo(map).bindPopup("<b>Damn Monkey</b>");
+            map.on('click', function(e) { ubicarManual(e.latlng); });
+        }
+
+        function ubicarManual(latlng) {
+            if (userMarker) map.removeLayer(userMarker);
+            userMarker = L.marker(latlng, { draggable: true }).addTo(map);
+            calcularPrecioEnvio(latlng);
+        }
+
+        function calcularPrecioEnvio(latlng) {
+            var punto = turf.point([latlng.lng, latlng.lat]);
+            zonaEncontrada = false;
+            envioCosto = 0;
+            for (var i = 0; i < ZONAS_ENVIO.features.length; i++) {
+                if (turf.booleanPointInPolygon(punto, ZONAS_ENVIO.features[i])) { envioCosto = ZONAS_ENVIO.features[i].properties.Precio; zonaEncontrada = true; break; }
+            }
+            var status = document.getElementById('envio-status');
+            var fueraAccion = document.getElementById('fuera-cobertura-accion');
+            if (zonaEncontrada) {
+                status.innerHTML = 'Zona identificada &mdash; Envio: $' + envioCosto.toFixed(2);
+                status.style.cssText = "background:rgba(34,197,94,0.08);color:#4ade80;border:1px solid rgba(34,197,94,0.2);padding:12px 14px;border-radius:12px;font-family:'Montserrat',sans-serif;font-weight:700;font-size:0.78rem;text-align:center;margin-top:10px;";
+                fueraAccion.classList.add('hidden');
+            } else {
+                status.innerHTML = 'LO SENTIMOS: Tu direccion esta fuera de nuestra zona de cobertura';
+                status.style.cssText = "background:rgba(239,68,68,0.08);color:#f87171;border:1px solid rgba(239,68,68,0.2);padding:12px 14px;border-radius:12px;font-family:'Montserrat',sans-serif;font-weight:700;font-size:0.78rem;text-align:center;margin-top:10px;";
+                fueraAccion.classList.remove('hidden');
+            }
+            actualizarBarraCarrito();
+        }
+
+        function obtenerUbicacion() {
+            navigator.geolocation.getCurrentPosition(function(pos) { var latlng = { lat: pos.coords.latitude, lng: pos.coords.longitude }; map.setView(latlng, 17); ubicarManual(latlng); }, function() { alert("Por favor activa tu GPS"); }, { enableHighAccuracy: true });
+        }
+
+        function setMetodo(tipo) {
+            metodo = tipo;
+            document.getElementById('btn-domicilio').classList.toggle('active', tipo === 'domicilio');
+            document.getElementById('btn-retiro').classList.toggle('active', tipo === 'retiro');
+            document.getElementById('btn-delivery-propio').classList.toggle('active', tipo === 'delivery_propio');
+            var secMapa = document.getElementById('seccion-mapa');
+            var secRetiro = document.getElementById('seccion-retiro');
+            var secDelivery = document.getElementById('seccion-delivery-propio');
+            if (tipo === 'domicilio') { secMapa.classList.remove('hidden'); secRetiro.classList.add('hidden'); secDelivery.classList.add('hidden'); setTimeout(function() { map.invalidateSize(); }, 200); }
+            else if (tipo === 'retiro') { secMapa.classList.add('hidden'); secRetiro.classList.remove('hidden'); secDelivery.classList.add('hidden'); }
+            else { secMapa.classList.add('hidden'); secRetiro.classList.add('hidden'); secDelivery.classList.remove('hidden'); }
+            if (tipo !== 'domicilio') { var fa = document.getElementById('fuera-cobertura-accion'); if (fa) fa.classList.add('hidden'); }
+            metodoPago = tipo === 'retiro' ? 'efectivo' : 'transferencia';
+            montoPagoEfectivo = ''; comprobanteNombre = ''; comprobanteDataURL = '';
+            renderizarPagoCarrito();
+            actualizarBarraCarrito();
+            document.querySelector('.card').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function enviarWhatsApp() {
+            if (metodo === 'domicilio' && !zonaEncontrada) return;
+            window.open(generarURLWhatsApp(), '_blank');
+        }
+
+        window.onload = function() {
+            metodoPago = 'transferencia';
+            subMetodoTransferencia = 'pichincha';
+            renderizarMenu();
+            initMap();
+        };
+    </script>
+</body>
+</html>
